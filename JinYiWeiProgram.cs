@@ -10,7 +10,7 @@ using System.Linq;
 
 namespace HoskeeperTransfer
 {
-    class JinYiWeiProgram
+    class Program
     {
         private static long _hospitalID = 1;
         private static long _channelID = 429;
@@ -26,12 +26,16 @@ namespace HoskeeperTransfer
         private static long _couponCategoryID = 14961071147172864;
         private static long _depositCategoryID = 14961071468217344;
         private static int _callbackNum = 200000;
-        static void JinYiWeiMain(string[] args)
+        static void Main(string[] args)
         {
             try
             {
-                _connection = new SqlConnection("Data Source=47.108.189.149a;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=Kmld1213!@#$qwer;MultipleActiveResultSets = true;connect timeout=9000000");
-                _mySqlConnection = new SqlConnection("Data Source=47.108.189.149a;Initial Catalog=JinYiWei;Persist Security Info=True;User ID=sa;Password=Kmld1213!@#$qwer;MultipleActiveResultSets = true;connect timeout=9000000");
+                _connection = new SqlConnection("Data Source=119.23.211.198;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=DW6yt!6JOcxK4Hwk;MultipleActiveResultSets = true;connect timeout=9000000");
+                _mySqlConnection = new SqlConnection("Data Source=119.23.211.198;Initial Catalog=IFlyDog;Persist Security Info=True;User ID=sa;Password=DW6yt!6JOcxK4Hwk;MultipleActiveResultSets = true;connect timeout=9000000");
+
+                //_connection = new SqlConnection("Data Source=47.108.219.51;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=vbA#4BcwizrZkp^n;MultipleActiveResultSets = true;connect timeout=9000000");
+                //_mySqlConnection = new SqlConnection("Data Source=119.23.211.198;Initial Catalog=JinYiWei;Persist Security Info=True;User ID=sa;Password=DW6yt!6JOcxK4Hwk;MultipleActiveResultSets = true;connect timeout=9000000");
+
                 _connection.Open();
                 _transaction = _connection.BeginTransaction();
 
@@ -66,12 +70,12 @@ namespace HoskeeperTransfer
                 //Coupon();
                 //Deposit();
 
-                //Order();
+                Order();
                 //BackOrder();
                 //BackDeposit();
                 //DepositOrder();
                 //OperationOld();
-                TahGroup();
+                //TahGroup();
 
                 _transaction.Commit();
             }
@@ -250,7 +254,7 @@ from SmartTag");
         {
             Console.WriteLine("收银方式开始导入");
             var list = _mySqlConnection.Query<DataTransferChannel>(@"select ID,Name,Remark,Status 
-from SmartCardCategory");
+from SmartCardCategory where ID not in (1)");
 
             _connection.Execute(@"insert into [SmartCardCategory](ID,Name,[Status],Remark) values (@ID,@Name,@Status,@Remark)", list, _transaction);
 
@@ -508,7 +512,7 @@ from SmartProduct
                 u.IsEvaluate = CommonStatus.Use;
                 if (u.CategoryID == null)
                 {
-                    u.CategoryID = 7;
+                    u.CategoryID = 37;
                 }
             }
 
@@ -618,39 +622,57 @@ from SmartCouponCategory a
         public static void DepositCategory()
         {
             Console.WriteLine("预收款类型开始导入");
-            var list = _mySqlConnection.Query<DepositChargeInfo>(@$"select a.id as ID,a.recharge_amount as Price,a.deposit_name as Name,a.`status` as Status
-,b.coupon_amount as CouponAmount,1 as ScopeLimit,c.id as CouponCategoryID,'数据迁移' as Remark ,0 as IsShopOnly
-from mk_deposit a
-left join r_deposit_coupon b 
-left join mk_coupon c on b.coupon_id=c.coupon_id
-on a.policy_id=b.deposit_id where a.policy_id in (select distinct a.deposit_id
-from op_customer_deposit a where a.rest_amount>0)
-
+            var list = _mySqlConnection.Query<DepositChargeInfo>(@$"SELECT [ID],[Name],[Price],[Status],[ScopeLimit],[ChargeID],[ChargeCategoryID],[HasCoupon],[CouponCategoryID],[CouponAmount],[Remark]
+FROM [SmartDepositCharge]
 ");
             var hospitalList = new List<object>();
+            var couponChargeList = new List<object>();
+            var couponChargeCategoryList = new List<object>();
+
             foreach (var u in list)
             {
-                if (u.CouponCategoryID == null)
+                if (u.ScopeLimit == 2 && u.ChargeCategoryID != null)
                 {
-                    u.HasCoupon = 0;
+                    couponChargeCategoryList.Add(new
+                    {
+                        ID = SingleIdWork.Instance(1).nextId(),
+                        CouponCategoryID = u.ID,
+                        ChargeCategoryID = u.ChargeCategoryID
+                    });
                 }
-                else
+
+                if (u.ScopeLimit == 3 && u.ChargeID != null)
                 {
-                    u.HasCoupon = 1;
+                    couponChargeList.Add(new
+                    {
+                        ID = SingleIdWork.Instance(1).nextId(),
+                        CouponCategoryID = u.ID,
+                        ChargeID = u.ChargeID
+                    });
                 }
                 hospitalList.Add(new
                 {
                     ID = SingleIdWork.Instance(1).nextId(),
-                    DepositChargeID = u.ID,
+                    CouponCategoryID = u.ID,
                     HospitalID = 1
                 });
+                u.IsShopOnly = 0;
             }
 
             _connection.Execute(@"insert into SmartDepositCharge(ID,Name,Price,Status,ScopeLimit,ChargeID,ChargeCategoryID,
 HasCoupon,CouponCategoryID,CouponAmount,Remark,IsShopOnly) 
                     VALUES(@ID, @Name, @Price, @Status, @ScopeLimit, @ChargeID, @ChargeCategoryID, @HasCoupon, @CouponCategoryID, @CouponAmount,@Remark,@IsShopOnly)", list, _transaction);
 
-            _connection.Execute("insert into SmartDepositChargeHospital(ID,DepositChargeID,HospitalID) VALUES(@ID, @DepositChargeID, @HospitalID)", hospitalList, _transaction); //预收款适用医院映射表
+            _connection.Execute("insert into SmartDepositChargeHospital(ID,DepositChargeID,HospitalID) VALUES(@ID, @CouponCategoryID, @HospitalID)", hospitalList, _transaction); //预收款适用医院映射表
+
+            if (couponChargeList.Count() > 0)
+            {
+                _connection.Execute(@"insert into [SmartDepositChargeCharge](ID,DepositChargeID,ChargeID) VALUES(@ID, @CouponCategoryID, @ChargeID)", couponChargeList, _transaction);
+            }
+            if (couponChargeCategoryList.Count() > 0)
+            {
+                _connection.Execute(@"insert into SmartDepositChargeChargeCategory(ID,DepositChargeID,ChargeCategoryID) VALUES(@ID, @CouponCategoryID, @ChargeCategoryID)", couponChargeCategoryList, _transaction);
+            }
             Console.WriteLine("预收款类型结束导入");
         }
 
@@ -681,7 +703,7 @@ from SmartUser a where a.ID<>1
 
                 roleList.Add(new UserRole()
                 {
-                    RoleID = 1,
+                    RoleID = 15254082486125568,
                     UserID = u.ID,
                     ID = u.ID
                 });
@@ -723,6 +745,8 @@ from SmartUser a where a.ID<>1
             customerAddList.Columns.Add("QQ", typeof(string));
             customerAddList.Columns.Add("WeChat", typeof(string));
             customerAddList.Columns.Add("CurrentConsultSymptomID", typeof(long));
+            //customerAddList.Columns.Add("Custom2", typeof(string));
+
 
 
             DataTable ownerShipAddList = new DataTable("SmartOwnerShip");
@@ -747,7 +771,7 @@ from SmartUser a where a.ID<>1
 
             var list = _mySqlConnection.Query<Customer>(@$"SELECT a.[ID],[Name],[Gender],[Mobile],[MobileBackup],[QQ],[WeChat],[CreateTime],[City],[ChannelID],[Remark],[CreateUserID],[Point]
       ,[Age],[Birthday],[Address],[CurrentConsultSymptomID],b.CityName,c.ProName,a.CurrentExploitUserID,a.CurrentManagerUserID
-  FROM [JinYiWei].[dbo].[SmartCustomer] a
+  FROM [dbo].[SmartCustomer] a
   left join SmartCity b on a.City=b.ID
   left join SmartProvince c on b.ParentID=c.ID", null, null, true, 6000);
 
@@ -763,7 +787,7 @@ from SmartUser a where a.ID<>1
 
                 if (u.CreateTime == null)
                 {
-                    u.CreateTime = DateTime.Parse("2020-01-01");
+                    u.CreateTime = DateTime.Parse("2021-01-01");
                 }
 
 
@@ -790,6 +814,13 @@ from SmartUser a where a.ID<>1
                     {
                         int month = u.Birthday.Value.Month;
                         int day = u.Birthday.Value.Day;
+                        if (month == 2)
+                        {
+                            if (day >= 29)
+                            {
+                                day = 28;
+                            }
+                        }
                         dr["Birthday"] = DateTime.Parse(DateTime.Today.Year + "/" + month + "/" + day).ToShortDateString();
                     }
                     else
@@ -819,6 +850,7 @@ from SmartUser a where a.ID<>1
                 dr["MobileBackup"] = u.MobileBackup;
                 dr["QQ"] = u.QQ;
                 dr["WeChat"] = u.WeChat;
+                //dr["Custom2"] = u.Custom2;
 
                 if (u.CurrentConsultSymptomID != null)
                 {
@@ -1036,7 +1068,7 @@ values (@ID,@Name,@Status,@SortNo,@Remark,@ItemID)", list, _transaction);
                 dr["CustomerID"] = u.CustomerID;
                 dr["CreateUserID"] = u.CreateUserID;
                 dr["CreateTime"] = u.CreateTime;
-                dr["Tool"] = 15074657023706112;
+                dr["Tool"] = 15254093442712576;
                 dr["HospitalID"] = _hospitalID;
                 if (u.Content == null)
                 {
@@ -1172,7 +1204,7 @@ from SmartCallback a where a.Status=0 and a.TaskTime>'2020-12-01'", null, null, 
 
             var list = _mySqlConnection.Query<CallBack>(@$"select a.ID,a.CustomerID,a.TaskCreateTime as CreateTime,a.TaskCreateUserID as CreateUserID,a.UserID,a.TaskTime,a.CategoryID,
 a.CreateTime as TaskCreateTime,a.CreateUserID as TaskCreateUserID,a.Content
-from SmartCallback a where a.Status=1 ", null, null, true, 6000);
+from SmartCallback a where a.Status=1", null, null, true, 6000);
 
             foreach (var u in list)
             {
@@ -1212,7 +1244,7 @@ from SmartCallback a where a.Status=1 ", null, null, true, 6000);
                 dr["TaskTime"] = u.TaskTime;
                 dr["Status"] = 1;
                 dr["HospitalID"] = _hospitalID;
-                dr["Tool"] = 15074657023706112;
+                dr["Tool"] = 15254093442712576;
                 dr["TaskCreateTime"] = u.TaskCreateTime;
                 dr["TaskCreateUserID"] = u.TaskCreateUserID;
 
@@ -1578,6 +1610,7 @@ b.CurrentExploitUserID as ExploitUserID,b.CurrentManagerUserID as ManagerUserID,
 from SmartBackOrder a
 inner join SmartCustomer b on a.CustomerID=b.ID
 where a.PaidStatus=2");
+            Console.WriteLine("1111111");
 
             var detailList = _mySqlConnection.Query<DepositOrderDetial>(@"select a.CustomerID,a.PaidTime as CreateTime,a.Remark,
 b.CurrentExploitUserID as ExploitUserID,b.CurrentManagerUserID as ManagerUserID,c.ID,c.OrderID,c.ChargeID,c.Num,c.Amount,c.DetailID,a.CreateUserID,c.DepositAmount 
@@ -1586,6 +1619,8 @@ inner join SmartCustomer b on a.CustomerID=b.ID
 inner join SmartBackOrderDetail c on a.ID=c.OrderID
 where a.PaidStatus=2
 ");
+            Console.WriteLine("222222222222222");
+
             foreach (var u in list)
             {
                 u.PaidStatus = 2;
@@ -1641,14 +1676,18 @@ where a.PaidStatus=2
                     BuyVisitType = VisitType.First
                 });
             }
+            Console.WriteLine("333333333333333");
+
             _connection.Execute(
                     @"insert into [SmartBackOrder]([ID],[HospitalID],[CustomerID],[CreateUserID],[CreateTime],[Amount],[Point],[PaidStatus],[Remark],[AuditStatus],VisitType,SourceType,ExploitUserID,ManagerUserID,RainFlyType) 
                         values(@ID,@HospitalID,@CustomerID,@CreateUserID,@CreateTime,@Amount,@Point,@PaidStatus,@Remark,@AuditStatus,@VisitType,@SourceType,@ExploitUserID,@ManagerUserID,@RainFlyType)",
                     list, _transaction);
+            Console.WriteLine("44444444444444");
 
             _connection.Execute(
                    @"insert into [SmartBackOrderDetail]([ID],[OrderID],[ChargeID],[Num],[Amount],[DetailID],BuyOrderID,BuyExploitUserID,BuyManagerUserID,BuyOrderUserID,BuyVisitType) 
                     values(@ID,@OrderID,@ChargeID,@Num,@Amount,@DetailID,@BuyOrderID,@ExploitUserID,@ManagerUserID,@CreateUserID,@VisitType)", detailList, _transaction);
+            Console.WriteLine("55555555555555555");
 
             _connection.Execute(
                         @"insert into [SmartCashierCharge]([CashierID],[ReferID],[CashCardAmount],[DepositAmount],[CouponAmount],[DebtAmount],[Amount],[HospitalID],[CommissionAmount],[CreateTime],[OrderType],[CustomerID],
@@ -1813,8 +1852,15 @@ where a.PaidStatus in(2,3)", null, null, true, 60000);
 
                 order["PaidStatus"] = u.PaidStatus;
 
-
-                order["Remark"] = u.Remark;
+                if (u.Remark.Length >= 900)
+                {
+                    u.Remark = u.Remark.Substring(0, 900);
+                }
+                else
+                {
+                    order["Remark"] = u.Remark;
+                }
+                
                 order["AuditStatus"] = 4;
                 orderList.Rows.Add(order);
             }

@@ -143,7 +143,7 @@ namespace HoskeeperTransfer
             SqlConnection _connection = null;
             try
             {
-                _connection = new SqlConnection("Data Source=47.105.89.85;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=Ytym#!@2020123456;MultipleActiveResultSets = true;connect timeout=900000000");
+                _connection = new SqlConnection("Data Source=47.104.154.228;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=Po8RL6m^Tq7XvzE3;MultipleActiveResultSets = true;connect timeout=900000000");
                 _connection.Open();
 
                 var customerTemp = _connection.Query<long>(@"select top 1 ID from SmartCustomer order by ID desc").FirstOrDefault();

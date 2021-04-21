@@ -53,6 +53,8 @@ namespace HoskeeperTransfer.DTO
         public ChargeType Type { get; set; }
 
         public long? ItemID { get; set; }
+
+        public CommonStatus IsSendPoint { get; set; }
     }
 
     public enum ChargeType

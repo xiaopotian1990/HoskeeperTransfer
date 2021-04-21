@@ -1,6 +1,7 @@
 ﻿using Dapper;
 using HoskeeperTransfer.DTO;
 using MySql.Data.MySqlClient;
+using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -12,11 +13,11 @@ namespace HoskeeperTransfer
     class HoskeeperProgram
     {
         private static long _hospitalID = 1;
-        private static long _channelID = 429;
+        private static long _channelID = 439;
         private static SqlConnection _connection;
         private static MySqlConnection _mySqlConnection;
         private static SqlTransaction _transaction;
-        private static long _tool = 14663754418897920;//电话工具
+        private static long _tool = 15213905621173248;//电话工具
         //private static long _symptomID = 14663754418897920;//无症状
         private static long _callBackCategoryOfSH = 14663756704973824;
         private static long _callBackCategoryOfWD = 14663756476875776;
@@ -29,23 +30,28 @@ namespace HoskeeperTransfer
         {
             try
             {
-                _connection = new SqlConnection("Data Source=a39.98.52.27;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=Tyld2020!@#$qwer;MultipleActiveResultSets = true;connect timeout=90000");
-                _mySqlConnection = new MySqlConnection("server=a39.98.95.208;database=hoskeeper_tyld;uid=root;pwd=qwer1234;charset=utf8;");
+                _connection = new SqlConnection("Data Source=a39.107.231.232;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=7frV4W&cjl1DrWUn;MultipleActiveResultSets = true;connect timeout=90000");
+                _mySqlConnection = new MySqlConnection("server=a39.106.132.6;database=hoskeeper_dltl;uid=root;pwd=qwer1234;charset=utf8;");
                 _connection.Open();
                 _transaction = _connection.BeginTransaction();
 
+                //Tag();
                 //Supplier();
+                Factory();
                 //Channel();
                 //Unit();
                 //ChargeCategory();
                 //Charge();
                 //ProductCategory();
-                Product();
+                //Product();
                 //Dept();
                 //User();
                 //CouponCategory();
                 //DepositCategory();
                 //Symptom();
+                //ChargeSet();
+
+
                 //Customer();
                 //Consult();
                 //CallBackTask();
@@ -53,10 +59,12 @@ namespace HoskeeperTransfer
                 //Visit();
                 //Coupon();
                 //Deposit();
-                //ChargeSet();
-                Order();
+
+                //Order();
                 //Operation();
+                //BackOrder();
                 //OperationOld();
+                Rebate();
 
                 _transaction.Commit();
             }
@@ -74,6 +82,37 @@ namespace HoskeeperTransfer
                 _connection.Close();
                 _mySqlConnection.Close();
             }
+        }
+
+        /// <summary>
+        /// 标签
+        /// </summary>
+        public static void Tag()
+        {
+            Console.WriteLine("标签开始导入");
+            var list = _mySqlConnection.Query<Tag>(@"select a.tag_name as Content,a.status as Status,b.type_name as TagGroupName 
+from r_tag_files a
+left join doc_tag_type b on a.type_id=b.type_id
+where a.is_del=0");
+
+            var groupList = _connection.Query<Tag>(@"select ID,Name as Content from SmartTagGroup", null, _transaction);
+
+            int i = 10000;
+            foreach (var u in list)
+            {
+                u.TagGroupID = groupList.Where(x => x.Content == u.TagGroupName).FirstOrDefault().ID;
+                u.NotCallBack = CommonStatus.Stop;
+                u.NotSend = CommonStatus.Stop;
+                u.NotSSM = CommonStatus.Stop;
+                u.ID = i;
+                i++;
+            }
+
+
+            _connection.Execute("insert into [SmartTag]([ID],[Content],[Status],NotCallBack,NotSend,NotSSM,TagGroupID) values (@ID,@Content,@Status,@NotCallBack,@NotSend,@NotSSM,@TagGroupID)",
+                   list, _transaction);
+
+            Console.WriteLine("标签结束导入");
         }
 
         /// <summary>
@@ -109,6 +148,33 @@ values (@ID,@Name,@LinkMan,@Contact,@Remark,@PinYin,@HospitalID)", list, _transa
         }
 
         /// <summary>
+        /// 供应商
+        /// </summary>
+        public static void Factory()
+        {
+            Console.WriteLine("生产厂商开始导入");
+            var list = _mySqlConnection.Query<DataTransferChannel>(@"
+select a.mfr_name as Name,a.pinyin_code as PinYin,a.`status` as Status from doc_manufacturer a where a.is_del=0
+");
+
+            DateTime now = DateTime.Now;
+            int i = 10000;
+            foreach (var u in list)
+            {
+                u.CreateTime = now;
+                u.CreateUserID = 1;
+                u.ID = i;
+                i++;
+                u.Remark = "数据迁移";
+            }
+
+            _connection.Execute(@"insert into SmartFactory(ID,Name,Remark,Status,CreateTime,CreateUserID) 
+values (@ID,@Name,@Remark,@Status,@CreateTime,@CreateUserID)", list, _transaction);
+
+            Console.WriteLine("生产厂商结束导入");
+        }
+
+        /// <summary>
         /// 渠道
         /// </summary>
         public static void Channel()
@@ -117,7 +183,7 @@ values (@ID,@Name,@LinkMan,@Contact,@Remark,@PinYin,@HospitalID)", list, _transa
             var list = _mySqlConnection.Query<Channel>(@"
 select a.id as ID,a.channel_name as Name,b.group_name as GroupName,a.`status` as Status
 from doc_channel a
-left join doc_channel_group b on a.group_id=b.group_id");
+left join doc_channel_group b on a.group_id=b.group_id where a.Is_del=0");
 
             if (list.Count() > 0)
             {
@@ -268,14 +334,14 @@ where a.is_del=0;
             foreach (var u in list)
             {
                 u.IsEvaluate = CommonStatus.Stop;
-                u.WarehouseID = 15067038250124288;
-                u.ChargeCategoryID = 15067034939491328;
+                u.WarehouseID = 15213125084136448;
+                u.ChargeCategoryID = 15213054196270080;
                 if (u.IsSale == CommonStatus.Use)
                 {
                     chargeResult.Add(new Charge()
                     {
-                        ID = i,
-                        CategoryID = 15067034939491328,
+                        ID = i + u.ID,
+                        CategoryID = 15213054196270080,
                         IsEvaluate = u.IsEvaluate,
                         Name = u.Name,
                         PinYin = u.PinYin,
@@ -371,7 +437,7 @@ from mk_coupon a where a.coupon_type=1 and a.coupon_id in (select coupon_id from
             var hospitalList = new List<object>();
             foreach (var u in list)
             {
-                if (u.Days >=1000)
+                if (u.Days >= 1000)
                 {
                     u.Days = null;
                     u.TimeLimit = 1;
@@ -391,7 +457,7 @@ from mk_coupon a where a.coupon_type=1 and a.coupon_id in (select coupon_id from
             }
 
             _connection.Execute(@"insert into SmartCouponCategory(ID,Name,ScopeLimit,ChargeID,ChargeCategoryID,TimeLimit,EndDate,Days,Remark,Status) 
-                        VALUES(@ID, @Name, @ScopeLimit, @ChargeID, @ChargeCategoryID, @TimeLimit, @EndDate, @Days, @Remark, @Status)",list, _transaction);
+                        VALUES(@ID, @Name, @ScopeLimit, @ChargeID, @ChargeCategoryID, @TimeLimit, @EndDate, @Days, @Remark, @Status)", list, _transaction);
 
             _connection.Execute(@"insert into SmartCouponCategoryHospital(ID,CouponCategoryID,HospitalID) VALUES(@ID, @CouponCategoryID, @HospitalID)", hospitalList, _transaction);
             Console.WriteLine("代金券类型结束导入");
@@ -516,8 +582,9 @@ where a.is_del=0
             customerAddList.Columns.Add("Commission", typeof(decimal));
             customerAddList.Columns.Add("Point", typeof(decimal));
             customerAddList.Columns.Add("MobileBackup", typeof(string));
-            customerAddList.Columns.Add("Custom9", typeof(string));
-            customerAddList.Columns.Add("Custom10", typeof(string));
+            customerAddList.Columns.Add("WeChatBind", typeof(string));
+            customerAddList.Columns.Add("WechatBindTime", typeof(DateTime));
+            customerAddList.Columns.Add("ImageUrl", typeof(string));
 
             DataTable ownerShipAddList = new DataTable("SmartOwnerShip");
             ownerShipAddList.Columns.Add("CustomerID", typeof(long));
@@ -542,21 +609,26 @@ where a.is_del=0
             var list = _mySqlConnection.Query<Customer>(@$"select a.id as ID, a.`name` as Name,a.phone as Mobile,
 REPLACE(REPLACE(a.backup_number, CHAR(10),''), CHAR(13), '') as MobileBackup,a.sex as Gender,
 case when FROM_UNIXTIME(a.birthday/1000) is null then null else FROM_UNIXTIME(a.birthday/1000) end  as Birthday,FROM_UNIXTIME(a.create_time/1000) as CreateTime,
-case when c.id is null then {_hospitalID} else c.id end as CreateUserID,d.ID as ChannelID,null as CurrentConsultSymptomID,f.id as CurrentExploitUserID,
-h.id as CurrentManagerUserID,b.integral as Point,b.coin as Commission,i.ID as  PromoterID,REPLACE(REPLACE(a.remark, CHAR(10),''), CHAR(13), '') as Remark,
-a.wechat_number as Custom9,a.qq_number as Custom10 
+case when c.id is null then 1 else c.id end as CreateUserID,d.ID as ChannelID,null as CurrentConsultSymptomID,f.id as CurrentExploitUserID,
+h.id as CurrentManagerUserID,b.integral as Point,b.coin as Commission,i.ID as  PromoterID,REPLACE(REPLACE(a.remark, CHAR(10),''), CHAR(13), '') as Remark,cw.openid_ser as OpenID,cw.create_date as WeChatCreateTime,cw.nick_name as NickName,
+a.sex as Sex,cw.province as Province,cw.city as City,cw.country as Country,cw.openid_ser as WeChatBind,cw.create_date as WechatBindTime,
+cw.avatar_url as ImageUrl,cw.avatar_url as HeadImgUrl
 from cu_customer a
-inner join r_customer_assets b on a.customer_id=b.customer_id
+left join r_customer_assets b on a.customer_id=b.customer_id
 left join doc_user c on a.create_user_id=c.user_id
 left join doc_channel d on a.resource_id=d.channel_id
 left join r_customer_ascription e on a.customer_id=e.customer_id and e.consultant_type=1 and e.`status`=1
 left join doc_user f on e.consultant=f.user_id
 left join r_customer_ascription g on a.customer_id=g.customer_id and g.consultant_type=2 and g.`status`=1
 left join doc_user h on g.consultant=h.user_id
-left join cu_customer i on a.referrer_id=i.customer_id", null, null, true, 6000);
+left join cu_customer i on a.referrer_id=i.customer_id
+left join cu_wechat cw on a.customer_id=cw.customer_id", null, null, true, 6000);
 
             List<object> commissionList = new List<object>();
             DateTime now = DateTime.Now;
+
+            List<Customer> wechatList = new List<Customer>();
+
             foreach (var u in list)
             {
                 if (u.ChannelID == null)
@@ -610,8 +682,13 @@ left join cu_customer i on a.referrer_id=i.customer_id", null, null, true, 6000)
                 //    u.MobileBackup = u.MobileBackup.Substring(0, 19);
                 //}
                 dr["MobileBackup"] = u.MobileBackup;
-                dr["Custom9"] = u.Custom9;
-                dr["Custom10"] = u.Custom10;
+                dr["WeChatBind"] = u.WeChatBind;
+                if (u.WechatBindTime != null)
+                {
+                    dr["WechatBindTime"] = u.WechatBindTime;
+                }
+                dr["ImageUrl"] = u.ImageUrl;
+
 
 
                 if (u.PromoterID != null)
@@ -619,6 +696,23 @@ left join cu_customer i on a.referrer_id=i.customer_id", null, null, true, 6000)
                     dr["PromoterID"] = u.PromoterID;
                 }
                 customerAddList.Rows.Add(dr);
+
+                if (!u.OpenID.IsNullOrEmpty())
+                {
+                    wechatList.Add(new Customer()
+                    {
+                        OpenID = u.OpenID,
+                        NickName = u.NickName,
+                        WeChatCreateTime = u.WeChatCreateTime,
+                        Sex = u.Sex,
+                        Province = u.Province,
+                        City = u.City,
+                        Country = u.Country,
+                        HeadImgUrl = u.HeadImgUrl,
+                        Type = 1,
+                        ID = u.ID,
+                    });
+                }
 
 
                 if (u.Point > 0)
@@ -696,6 +790,11 @@ left join cu_customer i on a.referrer_id=i.customer_id", null, null, true, 6000)
 values(@CustomerID,@CreateTime,@CreateUserID,@Type,@HospitalID,@Commission,@Remark,@FromHospitalID)", commissionList, _transaction);
 
             }
+            if (wechatList.Count > 0)
+            {
+                _connection.Execute(@"insert into SmartWeChat(OpenID,CustomerID,NickName,CreateTime,Sex,Province,City,Country,HeadImgUrl,Type) 
+values(@OpenID,@ID,@NickName,@WeChatCreateTime,@Sex,@Province,@City,@Country,@HeadImgUrl,@Type)", wechatList, _transaction);
+            }
             //生成顾客医院子表
             _connection.Execute(@"insert into [SmartCustomerHospital]([CustomerID],[HospitalID],[Point],[Commission])
 select a.ID as CustomerID,b.ID as HospitalID,0,0 from SmartCustomer a,SmartHospital b where a.ID not in (select distinct CustomerID from SmartCustomerHospital)", null, _transaction);
@@ -768,9 +867,9 @@ d.evaluation_content as EvaluationContent,FROM_UNIXTIME(d.create_time/1000) as E
 from op_consult a
 inner join cu_customer b on a.customer_id=b.customer_id
 inner join doc_user c on a.create_user_id=c.user_id
-left join op_consult_evaluation d on a.consult_id=d.consult_id", null, null, true, 6000);
+left join op_consult_evaluation d on a.consult_id=d.consult_id order by a.id", null, null, true, 6000);
 
-            
+
 
             DateTime now = DateTime.Now;
             foreach (var u in list)
@@ -803,14 +902,14 @@ left join op_consult_evaluation d on a.consult_id=d.consult_id", null, null, tru
                 consultList.Rows.Add(dr);
 
 
-               
+
             }
 
             var symptomList = _mySqlConnection.Query<ConsultDetail>(@"select a.id as ConsultID,c.id as SymptomID
 from op_consult a
 inner join op_consult_project_category b on a.consult_id=b.consult_id
 inner join doc_project_category c on b.project_category_id=c.project_category_id", null, null, true, 6000);
-            foreach(var u in symptomList)
+            foreach (var u in symptomList)
             {
                 DataRow dr2 = detailList.NewRow();
                 dr2["ConsultID"] = u.ConsultID;
@@ -1031,8 +1130,7 @@ left join doc_user d on a.consultant_id=d.user_id
 left join r_customer_ascription e on a.customer_id=e.customer_id and e.consultant_type=1 and e.`status`=1
 left join doc_user f on e.consultant=f.user_id
 left join r_customer_ascription g on a.customer_id=g.customer_id and g.consultant_type=2 and g.`status`=1
-left join doc_user h on g.consultant=h.user_id
-where a.type=1", null, null, true, 6000);
+left join doc_user h on g.consultant=h.user_id", null, null, true, 6000);
 
             foreach (var u in list)
             {
@@ -1130,7 +1228,7 @@ FROM_UNIXTIME(a.valid_date_end/1000)  as ExpirationDate,b.id as CategoryID
 from op_customer_coupon a
 inner join mk_coupon b on a.coupon_id=b.coupon_id
 inner join cu_customer c on a.customer_id=c.customer_id
-where a.rest>0 and a.valid_date_end>=@Date", new { Date = DateTime.Today.ToLocalUnixTimestamp() }, null, true, 6000);
+where a.rest>=1 and a.valid_date_end>=@Date", new { Date = DateTime.Today.ToLocalUnixTimestamp() }, null, true, 6000);
 
             DateTime now = DateTime.Now;
             foreach (var u in list)
@@ -1588,6 +1686,194 @@ inner join SmartMemberCategory as c on b.Level=c.Level", null, _transaction);
         }
 
         /// <summary>
+        /// 退款单开始导入
+        /// </summary>
+        public static void BackOrder()
+        {
+            //Console.WriteLine("(S)中下身吸脂基础型".PinYin());
+            Console.WriteLine("退款单开始导入");
+            var list = _mySqlConnection.Query<DepositOrder>(@"select a.id,b.id as CustomerID,a.project_amount as Amount, FROM_UNIXTIME(a.pay_time/1000) as CreateTime,
+a.reason_id as Remark,c.id as ManagerUserID,d.id as ExploitUserID,e.id as CreateUserID,a.deposit_amount
+from op_order_back a
+inner join cu_customer b on a.customer_id=b.customer_id
+left join doc_user c on a.live_id=c.user_id
+left join doc_user d on a.online_id=d.user_id
+left join doc_user e on a.create_user_id=e.user_id
+where a.`status`=2 and a.order_back_id in (select distinct order_back_id from r_order_back_project)");
+
+            var detailList = _mySqlConnection.Query<DepositOrderDetial>(@"select a.id,b.id as CustomerID, FROM_UNIXTIME(a.pay_time/1000) as CreateTime,
+a.reason_id as Remark,c.id as ManagerUserID,d.id as ExploitUserID,e.id as CreateUserID,f.id as DetailID,
+f.num as Num,f.back_amount as Amount,g.id as ChargeID,case when a.back_type=1 then 0 else f.back_amount end as DepositAmount 
+from op_order_back a
+inner join cu_customer b on a.customer_id=b.customer_id
+left join doc_user c on a.live_id=c.user_id
+left join doc_user d on a.online_id=d.user_id
+left join doc_user e on a.create_user_id=e.user_id
+inner join r_order_back_project f on a.order_back_id=f.order_back_id
+inner join doc_project g on f.project_id=g.project_id
+where a.`status`=2
+");
+            foreach (var u in list)
+            {
+                u.PaidStatus = 2;
+                u.PaidTime = u.CreateTime;
+                u.HospitalID = 1;
+                u.VisitType = VisitType.First;
+                u.SourceType = 7;
+                u.RainFlyType = 0;
+                u.Point = 0;
+                u.AuditStatus = 2;
+
+
+            }
+
+            var cashierList = new List<object>();
+            foreach (var u in detailList)
+            {
+                u.PaidStatus = 2;
+                u.PaidTime = u.CreateTime;
+                u.HospitalID = 1;
+                u.VisitType = VisitType.First;
+                u.SourceType = 7;
+                u.CashierID = 0;
+                u.BuyOrderID = 0;
+                cashierList.Add(new
+                {
+                    CashierID = 0,
+                    ReferID = u.ID,
+                    CashCardAmount = u.Amount - u.DepositAmount,
+                    DepositAmount = u.DepositAmount,
+                    CouponAmount = 0,
+                    DebtAmount = 0,
+                    Amount = u.Amount,
+                    HospitalID = 1,
+                    CommissionAmount = 0,
+                    CreateTime = u.CreateTime,
+                    OrderType = 4,
+                    CustomerID = u.CustomerID,
+                    ChargeID = u.ChargeID,
+                    u.Num,
+                    OriginAmount = u.Amount,
+                    VisitType = VisitType.First,
+                    u.ExploitUserID,
+                    u.ManagerUserID,
+
+                    u.OrderID,
+                    u.SourceType,
+                    RainFlyType = 0,
+                    OrderUserID = u.CreateUserID,
+                    BuyExploitUserID = u.ExploitUserID,
+                    BuyManagerUserID = u.ManagerUserID,
+                    BuyOrderUserID = u.CreateUserID,
+                    BuyVisitType = VisitType.First
+                });
+            }
+            _connection.Execute(
+                    @"insert into [SmartBackOrder]([ID],[HospitalID],[CustomerID],[CreateUserID],[CreateTime],[Amount],[Point],[PaidStatus],[Remark],[AuditStatus],VisitType,SourceType,ExploitUserID,ManagerUserID,RainFlyType) 
+                        values(@ID,@HospitalID,@CustomerID,@CreateUserID,@CreateTime,@Amount,@Point,@PaidStatus,@Remark,@AuditStatus,@VisitType,@SourceType,@ExploitUserID,@ManagerUserID,@RainFlyType)",
+                    list, _transaction);
+
+            _connection.Execute(
+                   @"insert into [SmartBackOrderDetail]([ID],[OrderID],[ChargeID],[Num],[Amount],[DetailID],BuyOrderID,BuyExploitUserID,BuyManagerUserID,BuyOrderUserID,BuyVisitType) 
+                    values(@ID,@OrderID,@ChargeID,@Num,@Amount,@DetailID,@BuyOrderID,@ExploitUserID,@ManagerUserID,@CreateUserID,@VisitType)", detailList, _transaction);
+
+            _connection.Execute(
+                        @"insert into [SmartCashierCharge]([CashierID],[ReferID],[CashCardAmount],[DepositAmount],[CouponAmount],[DebtAmount],[Amount],[HospitalID],[CommissionAmount],[CreateTime],[OrderType],[CustomerID],
+                        ChargeID,Num,OriginAmount,VisitType,ExploitUserID,ManagerUserID,OrderID,SourceType,RainFlyType,OrderUserID,BuyExploitUserID,BuyManagerUserID,BuyOrderUserID,BuyVisitType) 
+                        values(@CashierID,@ReferID,@CashCardAmount,@DepositAmount,@CouponAmount,@DebtAmount,@Amount,@HospitalID,@CommissionAmount,@CreateTime,@OrderType,@CustomerID,
+                        @ChargeID,@Num,@OriginAmount,@VisitType,@ExploitUserID,@ManagerUserID,@OrderID,@SourceType,@RainFlyType,@OrderUserID,@BuyExploitUserID,@BuyManagerUserID,@BuyOrderUserID,@BuyVisitType)",
+                        cashierList, _transaction);
+
+            //_connection.Execute(@"update SmartChargeSet set PinYin='' where PinYin is null", null, _transaction);
+            Console.WriteLine("退款单结束导入");
+        }
+
+
+        /// <summary>
+        /// 划扣
+        /// </summary>
+        public static void Operation()
+        {
+            Console.WriteLine("划扣记录开始迁移");
+            DataTable visitList = new DataTable("SmartOperation");
+            visitList.Columns.Add("ID", typeof(long));
+            visitList.Columns.Add("CustomerID", typeof(long));
+            visitList.Columns.Add("CreateUserID", typeof(long));
+            visitList.Columns.Add("CreateTime", typeof(DateTime));
+            visitList.Columns.Add("HospitalID", typeof(long));
+            visitList.Columns.Add("Remark", typeof(string));
+            visitList.Columns.Add("ChargeID", typeof(long));
+            visitList.Columns.Add("Num", typeof(int));
+            visitList.Columns.Add("DeptID", typeof(long));
+            visitList.Columns.Add("DoctorID", typeof(long));
+            visitList.Columns.Add("OrderDetailID", typeof(long));
+            visitList.Columns.Add("CustomerStatus", typeof(int));
+            visitList.Columns.Add("EvaluationTime", typeof(DateTime));
+            visitList.Columns.Add("EvaluationLevel", typeof(int));
+            visitList.Columns.Add("EvaluationContent", typeof(string));
+            visitList.Columns.Add("BuyHospitalID", typeof(long));
+            visitList.Columns.Add("RainFlyType", typeof(int));
+
+
+
+
+            var list = _mySqlConnection.Query<Operation>(@"select a.deduct_count as Num,g.id as CreateUserID,FROM_UNIXTIME(a.create_time/1000) as CreateTime,a.remark as Remark,c.id as OrderDetailID,
+e.id as CustomerID,f.id as ChargeID,h.id as DeptID,i.id as DoctorID,
+case when j.create_time is null then null else FROM_UNIXTIME(j.create_time/1000) end as EvaluationTime,j.cure_level as EvaluationLevel,j.cure_level_tags as EvaluationContent
+FROM op_deduct_record  a
+inner join tc_confirm_project  b ON a.confirm_project_id = b.id
+INNER JOIN r_order_project  c ON a.order_project_id = c.order_project_id
+INNER JOIN cu_customer  e ON e.customer_id = a.customer_id
+INNER JOIN doc_project  f ON c.project_id = f.project_id
+left join doc_user g on a.creater=g.user_id
+left join doc_dept h on h.dept_id=b.dept_id
+left join doc_user i on b.doctor_id=i.user_id
+left join op_order_project_evaluation j on j.deduct_id=a.deduct_id
+where a.is_del=0", null, null, true, 6000);
+
+            DateTime now = DateTime.Now;
+            var num = 100000;
+            foreach (var u in list)
+            {
+                DataRow dr = visitList.NewRow();
+                dr["ID"] = num;
+                //dr["CustomerID"] = new Random().Next(958266, 1430913);
+                dr["CustomerID"] = u.CustomerID;
+                dr["CreateUserID"] = u.CreateUserID;
+                dr["CreateTime"] = u.CreateTime;
+                dr["HospitalID"] = _hospitalID;
+                dr["ChargeID"] = u.ChargeID;
+                dr["Num"] = u.Num;
+                dr["Remark"] = u.Remark;
+                dr["DeptID"] = u.DeptID;
+                dr["DoctorID"] = u.DoctorID;
+                dr["OrderDetailID"] = u.OrderDetailID;
+                dr["CustomerStatus"] = 0;
+                if (u.EvaluationTime != null)
+                {
+                    dr["EvaluationTime"] = u.EvaluationTime;
+                    dr["EvaluationLevel"] = u.EvaluationLevel;
+                    dr["EvaluationContent"] = u.EvaluationContent;
+                }
+
+                dr["BuyHospitalID"] = _hospitalID;
+                dr["RainFlyType"] = 0;
+
+
+
+                visitList.Rows.Add(dr);
+                num++;
+            }
+
+            if (visitList.Rows.Count > 0)
+            {
+                SqlBulkCopyByDataTable("SmartOperation", visitList);
+            }
+
+            Console.WriteLine("划扣记录结束迁移");
+        }
+
+        /// <summary>
         /// 划扣
         /// </summary>
         public static void OperationOld()
@@ -1606,7 +1892,7 @@ inner join SmartMemberCategory as c on b.Level=c.Level", null, _transaction);
             visitList.Columns.Add("DoctorID", typeof(long));
             visitList.Columns.Add("OrderDetailID", typeof(long));
             visitList.Columns.Add("CustomerStatus", typeof(int));
-            
+
 
 
             var list = _mySqlConnection.Query<Operation>(@"select c.id as CustomerID,FROM_UNIXTIME(a.create_time/1000) as CreateTime,a.num as Num,b.id as ChargeID,a.remark as Remark
@@ -1643,6 +1929,84 @@ inner join cu_customer c on a.customer_id=c.customer_id", null, null, true, 6000
             }
 
             Console.WriteLine("划扣记录结束迁移");
+        }
+
+        /// <summary>
+        /// 提点
+        /// </summary>
+        public static void Rebate()
+        {
+            Console.WriteLine("提点导入开始！");
+            string str = @"9927,9928,9929,9930,9931,9932,9933,9934,9935,9936,10440,10487,10488,10489,10490,10491,10492,10493,10494,10495,10496,10497,
+10498,10499,10500,10501,10502,10503,10504,10505,10506,10507,10508,10509,10510,10511,10512,10513,10514,10515,10534,10571,27553,27573,27590,27594,27601,
+27607,27609,27611,27752,27757,27867,27873,27894,27953,27955,27957,27959,27961,27963,27965,27967,27969,27971,27973,27975,27977,27979,27981,27983,27985,27987,
+27989,27991,27993,27995,27997,27999,28002,28004,28006,28008,28010,28012,28014,28016,28018,28020,28022,28024,28026,28028,28030,28032,28034,28037,28039,28041,
+28043,28045,28047,28049,28051,28053,28055,28057,28059,28061,28064,28066,28069,28071,28073,28075,28077,28079,28081,28083,28085,28087,28089,28091,28093,28095,
+28097,28099,28101,28103,28105,28107,28109,28114,28116,28118,28120,28122,28124,28126,28128,28130,28132,28134,28136,28138,28140,28142,28144,28146,28148,28151,28153,
+28155,28157,28160,28173,28177,28179,28181,28183,28187,28196,28205,28207,28236,28238,28256,28258,28269,28271,28273,28315,28322,28332,28340,28342,28344,28346,28387,
+28410,28414,28431,28464,28466,28473,28475,28484,28486,28488,28490,28529,28532,28534,28538,28540,28549,28551,28553,28558,28580,28582,28584,28586,28599,28610,28612,
+28615,28619,28621,28634,28637,28639,28641,28643,28657,28666,28668,28685,28687,28689,28691,28704,28707,28709,28715,28735,28739,28768,28770,28773,28775,28782,28785,
+28787,28789,28791,28794,28805,28809,28817,28819,28824,28826,28830,28833,28839,28853,28855,28858,28861,28863,28865,28868,28877,28896,28921,28923,28933,28935,28938,
+28940,28946,28950,28952,28954,28963,28966,28978,28989,28993,28996,28998,29003,29005,29007,29009,29011,29013,29022,29024,29029,29036,29041,29051,29053,29055,29058,
+29061,29063,29065,29067,29069,29071,29073,29075,29077,29079,29081,29083,29085,29088,29090,29092,29094,29096,29098,29100";
+
+            var list = str.Split(',');
+
+            var data = new List<Rebate>();
+            foreach (var u in list)
+            {
+                long ID = SingleIdWork.Instance(1).nextId();
+                data.Add(new Rebate()
+                {
+                    ID = ID,
+                    ChargeID = long.Parse(u),
+                    Level1 = 0,
+                    Level2 = 0,
+                    Level3 = 0,
+                    Level4 = 0,
+                    Level5 = 0,
+                    Status = CommonStatus.Use,
+                    Discount = 50,
+                    Type = 17,
+                    TimeLimit = 1,
+                });
+                //data.Add(new Rebate()
+                //{
+                //    ID = SingleIdWork.Instance(1).nextId(),
+                //    Level1 = 10,
+                //    Level2 = 0,
+                //    Level3 = 0,
+                //    Level4 = 0,
+                //    Level5 = 0,
+                //    Status = CommonStatus.Use,
+                //    Discount = 50,
+                //    Type = 18,
+                //    TimeLimit = 1,
+                //    PID = ID,
+                //    IsOld = 0
+                //});
+                //data.Add(new Rebate()
+                //{
+                //    ID = SingleIdWork.Instance(1).nextId(),
+                //    Level1 = 5,
+                //    Level2 = 0,
+                //    Level3 = 0,
+                //    Level4 = 0,
+                //    Level5 = 0,
+                //    Status = CommonStatus.Use,
+                //    Discount = 50,
+                //    Type = 19,
+                //    TimeLimit = 1,
+                //    PID = ID,
+                //    IsOld = 1
+                //});
+            }
+
+            _connection.Execute(@"insert into SmartRebate(ID,ChargeID,Level1,Level2,Level3,Level4,Level5,Status,Discount,Type,TimeLimit,PID,IsOld) 
+values(@ID,@ChargeID,@Level1,@Level2,@Level3,@Level4,@Level5,@Status,@Discount,@Type,@TimeLimit,@PID,@IsOld)", data, _transaction);
+
+            Console.WriteLine("提点导入结束！");
+
         }
 
         /// <summary>

@@ -6,6 +6,9 @@ namespace HoskeeperTransfer.DTO
 {
     class Customer
     {
+        public string WeChatBind { get; set; }
+        public DateTime? WechatBindTime { get; set; }
+        public string ImageUrl { get; set; }
         public long ID { get; set; }
         public int? Age { get; set; }
         /// <summary>
@@ -24,6 +27,10 @@ namespace HoskeeperTransfer.DTO
         /// 备用手机号
         /// </summary>
         public string MobileBackup { get; set; }
+        public string MobileBackup2 { get; set; }
+        public string MobileBackup3 { get; set; }
+        public string MobileBackup4 { get; set; }
+
         /// <summary>
         /// 渠道ID
         /// </summary>
@@ -66,6 +73,8 @@ namespace HoskeeperTransfer.DTO
 
         public string Remark { get; set; }
         public string Custom9 { get; set; }
+        public string Custom2 { get; set; }
+
         public string Custom10 { get; set; }
 
         public string CityName { get; set; }
@@ -76,5 +85,17 @@ namespace HoskeeperTransfer.DTO
 
         public string WeChat { get; set; }
         public string QQ { get; set; }
+
+
+        public string OpenID { get; set; }
+        public DateTime? WeChatCreateTime { get; set; }
+        public string NickName { get; set; }
+        public int Sex { get; set; }
+        public string Province { get; set; }
+        public string City { get; set; }
+        public string Country { get; set; }
+        public string HeadImgUrl { get; set; }
+        public string UnionID { get; set; }
+        public int Type { get; set; }
     }
 }

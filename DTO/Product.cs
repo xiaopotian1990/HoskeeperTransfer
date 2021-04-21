@@ -92,5 +92,7 @@ namespace HoskeeperTransfer.DTO
         /// 转化为项目后的分类
         /// </summary>
         public long? ChargeCategoryID { get; set; }
+
+        public CommonStatus IsSendPoint { get; set; }
     }
 }

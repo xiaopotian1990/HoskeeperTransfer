@@ -33,6 +33,7 @@ namespace HoskeeperTransfer.DTO
         public CommonStatus NotSSM { get; set; }
 
         public long? TagGroupID { get; set; }
+        public string TagGroupName { get; set; }
         public CommonStatus Status { get; set; }
     }
 }
