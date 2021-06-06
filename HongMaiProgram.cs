@@ -16,7 +16,7 @@ using System.Xml.XPath;
 
 namespace HoskeeperTransfer
 {
-    class HMProgram
+    class Program
     {
         private static long _hospitalID = 1;
         private static long _channelID = 429;
@@ -32,7 +32,7 @@ namespace HoskeeperTransfer
         private static long _couponCategoryID = 14692223833048064;
         private static long _depositCategoryID = 14692224210437120;
         private static int _callbackNum = 50000;
-        static void HMMain(string[] args)
+        static void Main(string[] args)
         {
             try
             {
@@ -52,12 +52,16 @@ namespace HoskeeperTransfer
                 //_connection = new SqlConnection("Data Source=139.129.14.16;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=E^usrZ^S%1^xhmUy;MultipleActiveResultSets = true;connect timeout=90000000");
 
                 //淄博壹美
-                _connection = new SqlConnection("Data Source=47.104.154.228;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=Po8RL6m^Tq7XvzE3;MultipleActiveResultSets = true;connect timeout=90000000");
-                
+                //_connection = new SqlConnection("Data Source=47.104.154.228;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=Po8RL6m^Tq7XvzE3;MultipleActiveResultSets = true;connect timeout=90000000");
+
                 //无锡丽都
                 //_connection = new SqlConnection("Data Source=47.114.120.247;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=Wxld2020NZZN!@#$5678;MultipleActiveResultSets = true;connect timeout=90000000");
 
-                _sourceSqlConnection = new SqlConnection(@"Data Source=192.168.1.253;Initial Catalog=his;Persist Security Info=True;User ID=xiaopotian;Password=xiaopotian19900206;MultipleActiveResultSets = true;connect timeout=90000");
+
+                //昆明丽都
+                _connection = new SqlConnection("Data Source=47.108.189.149;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=Kmld1213!@#$qwer;MultipleActiveResultSets = true;connect timeout=90000000");
+
+                //_sourceSqlConnection = new SqlConnection(@"Data Source=192.168.1.253;Initial Catalog=his;Persist Security Info=True;User ID=xiaopotian;Password=xiaopotian19900206;MultipleActiveResultSets = true;connect timeout=90000");
                 _connection.Open();
 
                 //                Console.WriteLine("订单剩余次数开始计算");
@@ -152,13 +156,14 @@ namespace HoskeeperTransfer
                 //Order();
                 //Operation();
                 //CaculateOrderRestNum();
-                //MobileInfo();
+                MobileInfo();
                 //CustomerTag2();
                 //Point();
 
                 //ChargeUpdate();
                 //CustomerKF();
-                MobileUpdate();
+                //FactoryNew();
+                //MobileUpdate();
                 _transaction.Commit();
             }
             catch (Exception e)
@@ -184,10 +189,10 @@ namespace HoskeeperTransfer
         {
             Console.WriteLine("电话开始更新");
 
-            var list=_connection.Query<Customer>(@"select ID,MobileBackup from SmartCustomer where ISNUMERIC(MobileBackup)=0 and MobileBackup is not null and MobileBackup <> ''", null, _transaction);
+            var list = _connection.Query<Customer>(@"select ID,MobileBackup from SmartCustomer where ISNUMERIC(MobileBackup)=0 and MobileBackup is not null and MobileBackup <> ''", null, _transaction);
             var result = new List<Customer>();
 
-            foreach(var u in list)
+            foreach (var u in list)
             {
                 //if(Regex.Matches(u.MobileBackup, "[a-zA-Z]").Count()>0)
                 //{
@@ -2003,6 +2008,58 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
 
 
             Console.WriteLine("标签记录结束迁移");
+        }
+
+        /// <summary>
+        /// 科室客服
+        /// </summary>
+        public static void FactoryNew()
+        {
+            Console.WriteLine("工厂开始迁移");
+
+
+            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\淄博壹美\\最新仓库\\Factory.xlsx")))
+            {
+                ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
+                int rowCount = worksheet.Dimension.Rows;
+                int ColCount = worksheet.Dimension.Columns;
+
+                List<DataTransferCommon> result = new List<DataTransferCommon>();
+
+                var list = _connection.Query<string>(@"select Name from SmartFactory", null, _transaction);
+
+                for (int row = 2; row <= rowCount; row++)
+                {
+                    if (worksheet.Cells[row, 1].Value == null)
+                    {
+                        break;
+                    }
+                    if (list.Where(x => x.Trim() == worksheet.Cells[row, 1].Value.ToString().Trim()).Count() == 0)
+                    {
+                        result.Add(new DataTransferCommon()
+                        {
+                            ID = SingleIdWork.Instance(1).nextId(),
+                            Name = worksheet.Cells[row, 1].Value.ToString().Trim(),
+                        });
+                    }
+
+                }
+
+                ///导入数据库
+                //_connection.Execute(@"delete from  SmartCustomerTag where TagID=@TagID", new { TagID = 14996523617928192 }, _transaction);
+                // _connection.Execute(@"insert into Test values(@Name)", result, _transaction) ;
+
+                if (result.Count > 0)
+                {
+                    _connection.Execute(@"insert into SmartFactory values(@ID,@Name,1,'Excel导入','2021-05-07',1)", result, _transaction);
+
+                }
+
+            }
+
+
+
+            Console.WriteLine("工厂结束迁移");
         }
 
         /// <summary>

@@ -10,7 +10,7 @@ using System.Linq;
 
 namespace HoskeeperTransfer
 {
-    class Program
+    class JYWProgram
     {
         private static long _hospitalID = 1;
         private static long _channelID = 429;
@@ -26,15 +26,15 @@ namespace HoskeeperTransfer
         private static long _couponCategoryID = 14961071147172864;
         private static long _depositCategoryID = 14961071468217344;
         private static int _callbackNum = 200000;
-        static void Main(string[] args)
+        static void JYWMain(string[] args)
         {
             try
             {
-                _connection = new SqlConnection("Data Source=119.23.211.198;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=DW6yt!6JOcxK4Hwk;MultipleActiveResultSets = true;connect timeout=9000000");
-                _mySqlConnection = new SqlConnection("Data Source=119.23.211.198;Initial Catalog=IFlyDog;Persist Security Info=True;User ID=sa;Password=DW6yt!6JOcxK4Hwk;MultipleActiveResultSets = true;connect timeout=9000000");
+                _connection = new SqlConnection("Data Source=a119.23.211.198;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=DW6yt!6JOcxK4Hwk;MultipleActiveResultSets = true;connect timeout=9000000");
+                _mySqlConnection = new SqlConnection("Data Source=a119.23.211.198;Initial Catalog=IFlyDog;Persist Security Info=True;User ID=sa;Password=DW6yt!6JOcxK4Hwk;MultipleActiveResultSets = true;connect timeout=9000000");
 
                 //_connection = new SqlConnection("Data Source=47.108.219.51;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=vbA#4BcwizrZkp^n;MultipleActiveResultSets = true;connect timeout=9000000");
-                //_mySqlConnection = new SqlConnection("Data Source=119.23.211.198;Initial Catalog=JinYiWei;Persist Security Info=True;User ID=sa;Password=DW6yt!6JOcxK4Hwk;MultipleActiveResultSets = true;connect timeout=9000000");
+                //_mySqlConnection = new SqlConnection("Data Source=47.108.219.51;Initial Catalog=JinYiWei;Persist Security Info=True;User ID=sa;Password=vbA#4BcwizrZkp^n;MultipleActiveResultSets = true;connect timeout=9000000");
 
                 _connection.Open();
                 _transaction = _connection.BeginTransaction();
@@ -65,18 +65,19 @@ namespace HoskeeperTransfer
                 //Customer();
                 //Consult();
                 //CallBackTask();
+                //CallBackTaskBL();
                 //CallBack();
                 //Visit();
                 //Coupon();
                 //Deposit();
 
-                Order();
+                //Order();
                 //BackOrder();
                 //BackDeposit();
                 //DepositOrder();
                 //OperationOld();
                 //TahGroup();
-
+                //Photo();
                 _transaction.Commit();
             }
             catch (Exception e)
@@ -93,6 +94,102 @@ namespace HoskeeperTransfer
                 _connection.Close();
                 _mySqlConnection.Close();
             }
+        }
+
+        public static void Photo()
+        {
+            Console.WriteLine("照片开始迁移");
+            DataTable callbackList = new DataTable("SmartPhoto");
+            callbackList.Columns.Add("ID", typeof(long));
+            callbackList.Columns.Add("CustomerID", typeof(long));
+            callbackList.Columns.Add("CreateUserID", typeof(long));
+            callbackList.Columns.Add("CreateTime", typeof(DateTime));
+            callbackList.Columns.Add("ChargeID", typeof(long));
+            callbackList.Columns.Add("Remark", typeof(string));
+            callbackList.Columns.Add("ImageUrl", typeof(string));
+            callbackList.Columns.Add("SymptomID", typeof(long));
+            callbackList.Columns.Add("Type", typeof(int));
+            callbackList.Columns.Add("ReducedImage", typeof(string));
+
+
+            var list = _mySqlConnection.Query<Photo>(@$"select ID,CustomerID,CreateUserID,CreateTime,ChargeID,Remark,ImageUrl,SymptomID,Type,ZoomImageUrl as ReducedImage  from SmartPhoto", null, null, true, 6000);
+
+            DateTime now = DateTime.Now;
+            foreach (var u in list)
+            {
+                DataRow dr = callbackList.NewRow();
+                dr["ID"] = u.ID;
+                //dr["CustomerID"] = new Random().Next(958266,1430913);
+                dr["CustomerID"] = u.CustomerID;
+                dr["CreateUserID"] = u.CreateUserID;
+                dr["CreateTime"] = u.CreateTime;
+                if (u.ChargeID != null)
+                {
+                    dr["ChargeID"] = u.ChargeID;
+
+                }
+                if (u.SymptomID != null)
+                {
+                    dr["SymptomID"] = u.SymptomID;
+                }
+                dr["Remark"] = u.Remark;
+
+                
+                dr["ImageUrl"] = @"http://10.0.0.2/" + u.CustomerID + @"/" + u.ImageUrl.Substring(1, u.ImageUrl.Length - 1);
+                dr["Type"] = u.Type;
+                dr["ReducedImage"] = @"http://10.0.0.2/" + u.CustomerID + @"/" + u.ReducedImage.Substring(1, u.ReducedImage.Length - 1);
+
+                callbackList.Rows.Add(dr);
+            }
+
+            if (callbackList.Rows.Count > 0)
+            {
+                SqlBulkCopyByDataTable("SmartPhoto", callbackList);
+            }
+
+            Console.WriteLine("照片结束迁移");
+        }
+
+        public static void CallBackTaskBL()
+        {
+            Console.WriteLine("回访计划记录开始迁移");
+            DataTable callbackList = new DataTable("SmartTest");
+            callbackList.Columns.Add("ID", typeof(long));
+            callbackList.Columns.Add("Name", typeof(string));
+
+
+            var list = _mySqlConnection.Query<CallBack>(@$"select a.ID,a.Name  
+from SmartCallback a where a.Status=0 and a.TaskTime>'2020-12-01' and Name is not null and Name <> ''", null, null, true, 6000);
+
+            DateTime now = DateTime.Now;
+            foreach (var u in list)
+            {
+                DataRow dr = callbackList.NewRow();
+                dr["ID"] = u.ID;
+                if (u.Name == null)
+                {
+                    u.Name = "";
+                }
+                if (u.Name.Length > 50)
+                {
+                    dr["Name"] = u.Name.Substring(0, 50);
+                }
+                else
+                {
+                    dr["Name"] = u.Name;
+                }
+
+                callbackList.Rows.Add(dr);
+            }
+
+            if (callbackList.Rows.Count > 0)
+            {
+                SqlBulkCopyByDataTable("SmartTest", callbackList);
+
+
+            }
+
+            Console.WriteLine("回访计划记录结束迁移");
         }
 
         public static void TahGroup()
@@ -1530,9 +1627,9 @@ where a.PaidStatus=2
                 u.Point = 0;
                 u.Coupon = 0;
                 u.Deposit = u.Amount;
-                
 
-                
+
+
             }
 
             var cashierList = new List<object>();
@@ -1649,7 +1746,7 @@ where a.PaidStatus=2
                 {
                     CashierID = 0,
                     ReferID = u.ID,
-                    CashCardAmount = u.Amount-u.DepositAmount,
+                    CashCardAmount = u.Amount - u.DepositAmount,
                     DepositAmount = u.DepositAmount,
                     CouponAmount = 0,
                     DebtAmount = 0,
@@ -1662,10 +1759,10 @@ where a.PaidStatus=2
                     ChargeID = u.ChargeID,
                     u.Num,
                     OriginAmount = u.Amount,
-                    VisitType=VisitType.First,
+                    VisitType = VisitType.First,
                     u.ExploitUserID,
                     u.ManagerUserID,
-                    
+
                     u.OrderID,
                     u.SourceType,
                     RainFlyType = 0,
@@ -1860,7 +1957,7 @@ where a.PaidStatus in(2,3)", null, null, true, 60000);
                 {
                     order["Remark"] = u.Remark;
                 }
-                
+
                 order["AuditStatus"] = 4;
                 orderList.Rows.Add(order);
             }
