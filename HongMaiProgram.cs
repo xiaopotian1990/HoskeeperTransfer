@@ -16,7 +16,7 @@ using System.Xml.XPath;
 
 namespace HoskeeperTransfer
 {
-    class Program
+    class HMProgram
     {
         private static long _hospitalID = 1;
         private static long _channelID = 429;
@@ -32,7 +32,7 @@ namespace HoskeeperTransfer
         private static long _couponCategoryID = 14692223833048064;
         private static long _depositCategoryID = 14692224210437120;
         private static int _callbackNum = 50000;
-        static void Main(string[] args)
+        static void HMMain(string[] args)
         {
             try
             {
@@ -63,67 +63,8 @@ namespace HoskeeperTransfer
 
                 //_sourceSqlConnection = new SqlConnection(@"Data Source=192.168.1.253;Initial Catalog=his;Persist Security Info=True;User ID=xiaopotian;Password=xiaopotian19900206;MultipleActiveResultSets = true;connect timeout=90000");
                 _connection.Open();
+                _transaction = _connection.BeginTransaction();
 
-                //                Console.WriteLine("订单剩余次数开始计算");
-                //                var orderDetailList = _connection.Query<OrderDetail>(@"select b.ID as OrderDetailID,b.Num,b.Num as RestNum,a.CustomerID,b.ChargeID,a.CreateTime  
-                //from SmartOrder a
-                //inner join SmartOrderDetail b on a.ID=b.OrderID
-                //where a.PaidStatus in (2,3) ", null);
-                //                Console.WriteLine(@"111111111111111111111111");
-
-                //                var operationList = _connection.Query<OrderDetail>(@"select a.ID as OperationID,a.CustomerID,a.OrderDetailID,a.Num,a.ChargeID 
-                //from SmartOperation a where a.OrderDetailID=0  order by a.CreateTime", null);
-                //                Console.WriteLine(@"2222222222222");
-                //                _connection.Close();
-
-                //                DataTable visitList = new DataTable("SmartOperationTest");
-                //                visitList.Columns.Add("OperationID", typeof(long));
-                //                visitList.Columns.Add("OrderDetailID", typeof(long));
-                //                int i = 0;
-
-                //                foreach (var u in operationList)
-                //                {
-                //                    var temp = orderDetailList.AsParallel().Where(x => x.CustomerID == u.CustomerID && x.ChargeID == u.ChargeID && u.Num <= x.RestNum).OrderBy(x => x.RestNum).FirstOrDefault();
-                //                    if (temp == null)
-                //                    {
-                //                        i++;
-                //                    }
-                //                    else
-                //                    {
-                //                        u.OrderDetailID = temp.OrderDetailID;
-                //                        temp.RestNum -= u.Num;
-                //                    }
-
-                //                    DataRow dr = visitList.NewRow();
-                //                    dr["OperationID"] = u.OperationID;
-                //                    dr["OrderDetailID"] = u.OrderDetailID;
-
-                //                    visitList.Rows.Add(dr);
-                //                }
-
-                //                Console.WriteLine(@"333333333333333333");
-                //                _connection = new SqlConnection("Data Source=47.104.154.228;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=Po8RL6m^Tq7XvzE3;MultipleActiveResultSets = true;connect timeout=90000000");
-
-                //                _connection.Open();
-                //                _transaction = _connection.BeginTransaction();
-
-                //                _connection.Execute(@"create table SmartOperationTest
-                //(
-                //OperationID bigint ,
-                //OrderDetailID bigint 
-                //)", null, _transaction);
-                //                if (visitList.Rows.Count > 0)
-                //                {
-                //                    SqlBulkCopyByDataTable("SmartOperationTest", visitList);
-                //                }
-
-                //                _connection.Execute(@"update SmartOperation set OrderDetailID=b.OrderDetailID 
-                //from SmartOperation a 
-                //inner join SmartOperationTest b on a.ID=b.OperationID", null, _transaction);
-
-                //                _connection.Execute(@"drop table SmartOperationTest", null, _transaction);
-
-                //                Console.WriteLine("用户结束导入");
 
                 //Channel();
                 //Dept();
@@ -156,7 +97,7 @@ namespace HoskeeperTransfer
                 //Order();
                 //Operation();
                 //CaculateOrderRestNum();
-                MobileInfo();
+                //MobileInfo();
                 //CustomerTag2();
                 //Point();
 
@@ -164,6 +105,8 @@ namespace HoskeeperTransfer
                 //CustomerKF();
                 //FactoryNew();
                 //MobileUpdate();
+
+                //DeptCouument();
                 _transaction.Commit();
             }
             catch (Exception e)
@@ -323,6 +266,51 @@ namespace HoskeeperTransfer
         }
 
         /// <summary>
+        /// 科室档案
+        /// </summary>
+        /// <returns></returns>
+        public static void DeptCouument()
+        {
+            Console.WriteLine("科室档案导入开始！");
+            using (var package = new ExcelPackage(new System.IO.FileInfo(@"D:\哪吒智能\各医院\昆明丽都\无创注射病例.xlsx")))
+            {
+                //许可证，必须添加许可证，否则会报错
+                ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
+                ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
+                int rowCount = worksheet.Dimension.Rows;
+                int ColCount = worksheet.Dimension.Columns;
+
+                DataTable callbackList = new DataTable("SmartDocumentTest");
+                callbackList.Columns.Add("Mobile", typeof(string));
+                callbackList.Columns.Add("Birthday", typeof(DateTime));
+                callbackList.Columns.Add("Age", typeof(GenderEnum));
+                callbackList.Columns.Add("No", typeof(string));
+
+                for (int row = 2; row <= rowCount; row++)
+                {
+                    if (worksheet.Cells[row, 1].Value == null && worksheet.Cells[row, 2].Value == null && worksheet.Cells[row, 3].Value == null)
+                    {
+                        break;
+                    }
+
+                    DataRow dr = callbackList.NewRow();
+                    dr["Mobile"] = worksheet.Cells[row, 1].Value.ToString();
+                    dr["Birthday"] = DateTime.Parse(worksheet.Cells[row, 2].Value.ToString());
+                    dr["Age"] = worksheet.Cells[row, 3].Value.ToString() == "女" ? GenderEnum.Girl : GenderEnum.Boy;
+                    dr["No"] = worksheet.Cells[row, 4].Value.ToString();
+
+                    callbackList.Rows.Add(dr);
+                }
+                if (callbackList.Rows.Count > 0)
+                {
+                    SqlBulkCopyByDataTable("SmartDocumentTest", callbackList);
+                }
+            }
+
+            Console.WriteLine("科室档案导入结束！");
+        }
+
+        /// <summary>
         /// 渠道
         /// </summary>
         public static void Channel()
@@ -331,6 +319,7 @@ namespace HoskeeperTransfer
             Dictionary<string, List<DataTransferChannel>> dic = new Dictionary<string, List<DataTransferChannel>>();
             using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\淄博壹美\\渠道资料表.xlsx")))
             {
+                
                 ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
                 int rowCount = worksheet.Dimension.Rows;
                 int ColCount = worksheet.Dimension.Columns;

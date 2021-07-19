@@ -24,4 +24,13 @@ namespace HoskeeperTransfer.DTO
 
         public string Remark { get; set; }
     }
+
+    public class Operator
+    {
+        public long OperationID { get; set; }
+        public long ID { get; set; }
+        public long UserID { get; set; }
+        public long PositionID { get; set; }
+        public string Remark { get; set; }
+    }
 }

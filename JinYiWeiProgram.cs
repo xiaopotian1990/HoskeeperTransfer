@@ -10,7 +10,7 @@ using System.Linq;
 
 namespace HoskeeperTransfer
 {
-    class JYWProgram
+    class Program
     {
         private static long _hospitalID = 1;
         private static long _channelID = 429;
@@ -26,15 +26,19 @@ namespace HoskeeperTransfer
         private static long _couponCategoryID = 14961071147172864;
         private static long _depositCategoryID = 14961071468217344;
         private static int _callbackNum = 200000;
-        static void JYWMain(string[] args)
+        static void Main(string[] args)
         {
             try
             {
-                _connection = new SqlConnection("Data Source=a119.23.211.198;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=DW6yt!6JOcxK4Hwk;MultipleActiveResultSets = true;connect timeout=9000000");
-                _mySqlConnection = new SqlConnection("Data Source=a119.23.211.198;Initial Catalog=IFlyDog;Persist Security Info=True;User ID=sa;Password=DW6yt!6JOcxK4Hwk;MultipleActiveResultSets = true;connect timeout=9000000");
+                //运城丽都
+                _connection = new SqlConnection("Data Source=8.130.29.41;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=jAXX@5T7HUiS%9^2;MultipleActiveResultSets = true;connect timeout=9000000");
+                _mySqlConnection = new SqlConnection("Data Source=8.130.29.41;Initial Catalog=JinYiWei;Persist Security Info=True;User ID=sa;Password=jAXX@5T7HUiS%9^2;MultipleActiveResultSets = true;connect timeout=9000000");
 
-                //_connection = new SqlConnection("Data Source=47.108.219.51;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=vbA#4BcwizrZkp^n;MultipleActiveResultSets = true;connect timeout=9000000");
-                //_mySqlConnection = new SqlConnection("Data Source=47.108.219.51;Initial Catalog=JinYiWei;Persist Security Info=True;User ID=sa;Password=vbA#4BcwizrZkp^n;MultipleActiveResultSets = true;connect timeout=9000000");
+                //_connection = new SqlConnection("Data Source=a119.23.211.198;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=DW6yt!6JOcxK4Hwk;MultipleActiveResultSets = true;connect timeout=9000000");
+                //_mySqlConnection = new SqlConnection("Data Source=a119.23.211.198;Initial Catalog=IFlyDog;Persist Security Info=True;User ID=sa;Password=DW6yt!6JOcxK4Hwk;MultipleActiveResultSets = true;connect timeout=9000000");
+
+                //_connection = new SqlConnection("Data Source=a47.108.219.51;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=vbA#4BcwizrZkp^n;MultipleActiveResultSets = true;connect timeout=9000000");
+                //_mySqlConnection = new SqlConnection("Data Source=a47.108.219.51;Initial Catalog=JinYiWei;Persist Security Info=True;User ID=sa;Password=vbA#4BcwizrZkp^n;MultipleActiveResultSets = true;connect timeout=9000000");
 
                 _connection.Open();
                 _transaction = _connection.BeginTransaction();
@@ -65,7 +69,6 @@ namespace HoskeeperTransfer
                 //Customer();
                 //Consult();
                 //CallBackTask();
-                //CallBackTaskBL();
                 //CallBack();
                 //Visit();
                 //Coupon();
@@ -134,7 +137,7 @@ namespace HoskeeperTransfer
                 }
                 dr["Remark"] = u.Remark;
 
-                
+
                 dr["ImageUrl"] = @"http://10.0.0.2/" + u.CustomerID + @"/" + u.ImageUrl.Substring(1, u.ImageUrl.Length - 1);
                 dr["Type"] = u.Type;
                 dr["ReducedImage"] = @"http://10.0.0.2/" + u.CustomerID + @"/" + u.ReducedImage.Substring(1, u.ReducedImage.Length - 1);
@@ -1233,8 +1236,8 @@ from SmartConsultSymptomDetail b", null, null, true, 60000);
             callbackList.Columns.Add("HospitalID", typeof(long));
 
 
-            var list = _mySqlConnection.Query<CallBack>(@$"select a.ID,a.CustomerID,a.TaskCreateTime as CreateTime,a.TaskCreateUserID as CreateUserID,a.UserID,a.TaskTime,a.CategoryID 
-from SmartCallback a where a.Status=0 and a.TaskTime>'2020-12-01'", null, null, true, 6000);
+            var list = _mySqlConnection.Query<CallBack>(@$"select a.ID,a.CustomerID,a.TaskCreateTime as CreateTime,a.TaskCreateUserID as CreateUserID,a.UserID,a.TaskTime,a.CategoryID,a.Name  
+from SmartCallback a where a.Status=0 and a.TaskTime>'2021-05-01'", null, null, true, 6000);
 
             DateTime now = DateTime.Now;
             foreach (var u in list)
@@ -1300,7 +1303,7 @@ from SmartCallback a where a.Status=0 and a.TaskTime>'2020-12-01'", null, null, 
 
 
             var list = _mySqlConnection.Query<CallBack>(@$"select a.ID,a.CustomerID,a.TaskCreateTime as CreateTime,a.TaskCreateUserID as CreateUserID,a.UserID,a.TaskTime,a.CategoryID,
-a.CreateTime as TaskCreateTime,a.CreateUserID as TaskCreateUserID,a.Content
+a.CreateTime as TaskCreateTime,a.CreateUserID as TaskCreateUserID,a.Content,a.Name 
 from SmartCallback a where a.Status=1", null, null, true, 6000);
 
             foreach (var u in list)
@@ -2142,15 +2145,15 @@ inner join SmartMemberCategory as c on b.Level=c.Level", null, _transaction);
             visitList.Columns.Add("OrderDetailID", typeof(long));
             visitList.Columns.Add("CustomerStatus", typeof(int));
 
-
+            DataTable operatorList = new DataTable("SmartOperator");
+            operatorList.Columns.Add("ID", typeof(long));
+            operatorList.Columns.Add("OperationID", typeof(long));
+            operatorList.Columns.Add("UserID", typeof(long));
+            operatorList.Columns.Add("PositionID", typeof(long));
 
             var list = _mySqlConnection.Query<Operation>(@"select a.ID,a.Num,a.CreateUserID,a.CreateTime,a.Remark,a.OrderDetailID,a.Status,a.CustomerStatus,a.CustomerID,
-b.UserID as DoctorID,c.DeptID,d.ChargeID 
+d.ChargeID 
 from SmartOperation a
-left join (select *, row_number() over (partition by OperationID order by ID) as group_idx  
-    from SmartOperator
-) b on a.ID=b.OperationID and group_idx = 1
-left join SmartUser c on a.CreateUserID=c.ID
 inner join SmartOrderDetail d on a.OrderDetailID=d.ID", null, null, true, 6000);
 
             foreach (var u in list)
@@ -2159,7 +2162,7 @@ inner join SmartOrderDetail d on a.OrderDetailID=d.ID", null, null, true, 6000);
                 dr["ID"] = u.ID;
                 //dr["CustomerID"] = new Random().Next(958266, 1430913);
                 dr["CustomerID"] = u.CustomerID;
-                dr["CreateUserID"] = 1;
+                dr["CreateUserID"] = u.CreateUserID;
                 dr["CreateTime"] = u.CreateTime;
                 dr["HospitalID"] = _hospitalID;
                 dr["ChargeID"] = u.ChargeID;
@@ -2171,11 +2174,11 @@ inner join SmartOrderDetail d on a.OrderDetailID=d.ID", null, null, true, 6000);
                 }
                 else
                 {
-                    dr["DeptID"] = 1;
+                    dr["DeptID"] = 0;
                 }
                 if (u.DoctorID == null)
                 {
-                    dr["DoctorID"] = 1;
+                    dr["DoctorID"] = 0;
                 }
                 else
                 {
@@ -2188,10 +2191,48 @@ inner join SmartOrderDetail d on a.OrderDetailID=d.ID", null, null, true, 6000);
                 visitList.Rows.Add(dr);
             }
 
+            var operatorTempList = _mySqlConnection.Query<Operator>(@"SELECT  [ID]
+      ,[OperationID]
+      ,[UserID]
+      ,[Remark]
+  FROM [SmartOperator]", null, null, true, 6000);
+
+            var positionList = _connection.Query<Channel>(@"select ID,Name from SmartPosition", null, _transaction);
+
+            foreach (var u in operatorTempList)
+            {
+                DataRow dr = operatorList.NewRow();
+                dr["ID"] = u.ID;
+
+
+                dr["OperationID"] = u.OperationID;
+                dr["UserID"] = u.UserID;
+                if (u.Remark.IsNullOrEmpty())
+                {
+                    u.Remark = "医生";
+                }
+
+                var temp = positionList.Where(x => x.Name == u.Remark).FirstOrDefault();
+                if (temp != null)
+                {
+                    dr["PositionID"] = temp.ID;
+                }
+                else
+                {
+                    dr["PositionID"] = positionList.Where(x => x.Name == "医生").FirstOrDefault().ID;
+                }
+
+                operatorList.Rows.Add(dr);
+            }
             if (visitList.Rows.Count > 0)
             {
                 SqlBulkCopyByDataTable("SmartOperation", visitList);
+                SqlBulkCopyByDataTable("SmartOperator", operatorList);
+
             }
+
+
+
 
             Console.WriteLine("划扣记录结束迁移");
         }
