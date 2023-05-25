@@ -6,6 +6,7 @@ namespace HoskeeperTransfer
 {
     class OrderDetail
     {
+        public long ID { get; set;    }
         public long OrderDetailID { get; set; }
         
         public long OperationID { get; set; }

@@ -94,5 +94,8 @@ namespace HoskeeperTransfer.DTO
         public long? ChargeCategoryID { get; set; }
 
         public CommonStatus IsSendPoint { get; set; }
+
+
+        public DateTime? yxsj { get; set; }
     }
 }

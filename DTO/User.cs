@@ -23,5 +23,6 @@ namespace HoskeeperTransfer.DTO
         public string DeptName { get; set; }
 
         public string Mobile { get; set; }
+        public int Sort { get; set; }
     }
 }

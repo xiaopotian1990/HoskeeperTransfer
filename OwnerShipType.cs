@@ -30,5 +30,10 @@ namespace HoskeeperTransfer
         /// </summary>
         [Description("科室医生")]
         DeptDoctor = 4,
+        /// <summary>
+        /// 咨询客服
+        /// </summary>
+        [Description("咨询客服")]
+        CustomerCall = 5,
     }
 }

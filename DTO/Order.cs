@@ -37,5 +37,10 @@ namespace HoskeeperTransfer.DTO
         public decimal DebtAmount { get; set; }
 
         public long OrderDetailID { get; set; }
+
+        public int AuditStatus { get; set; }
+        public DateTime PaidTime { get; set; }
+        public long HospitalID { get; set; }
+        public int SourceType { get; set; }
     }
 }

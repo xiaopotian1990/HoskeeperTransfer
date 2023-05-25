@@ -6,6 +6,7 @@ namespace HoskeeperTransfer.DTO
 {
     class Visit
     {
+        public long ID { get; set; }
         public long CustomerID { get; set; }
         public long? UserID { get; set; }
 
@@ -19,5 +20,8 @@ namespace HoskeeperTransfer.DTO
 
         public long? ExploitUserID { get; set; }
         public long? ManagerUserID { get; set; }
+        public long HospitalID { get; set; }
+        public int IsConsume { get; set; }
+        public long TodaySymptomID { get; set; }
     }
 }
