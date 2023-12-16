@@ -144,7 +144,7 @@ namespace HoskeeperTransfer
             try
             {
                 //青岛水上伊人
-                _connection = new SqlConnection("Data Source=114.215.126.154;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=u5yB%CwkVbc2XD2%; MultipleActiveResultSets = true;connect timeout=90000000");
+                _connection = new SqlConnection("Data Source=121.41.86.60;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=Qy3!%R4RvZ!8Vn!6; MultipleActiveResultSets = true;connect timeout=90000000");
 
                 //_connection = new SqlConnection("Data Source=47.109.54.109;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=#txcucqcGZH9%QjF; MultipleActiveResultSets = true;connect timeout=90000000");
                 _connection.Open();

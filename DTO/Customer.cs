@@ -97,5 +97,17 @@ namespace HoskeeperTransfer.DTO
         public string HeadImgUrl { get; set; }
         public string UnionID { get; set; }
         public int Type { get; set; }
+
+        public string Custom1 { get; set; }
+        public string Custom3 { get; set; }
+        public string Custom4 { get; set; }
+        public string Custom5 { get; set; }
+        public string Custom6 { get; set; }
+        public string Custom7 { get; set; }
+        public string Custom8 { get; set; }
+
+        public int? BirthYear { get; set; }
+        public string BirthDay2 { get; set; }
+
     }
 }

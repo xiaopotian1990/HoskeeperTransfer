@@ -16,7 +16,7 @@ using System.Xml.XPath;
 
 namespace HoskeeperTransfer
 {
-    class 盗版宏脉Program
+    class DBHMProgram
     {
         private static long _hospitalID = 1;
         private static long _channelID = 429;
@@ -32,7 +32,7 @@ namespace HoskeeperTransfer
         private static long _couponCategoryID = 14692223833048064;
         private static long _depositCategoryID = 14692224210437120;
         private static int _callbackNum = 50000;
-        static void 盗版宏脉Main(string[] args)
+        static void DBHongMaiMain(string[] args)
         {
             try
             {
@@ -75,7 +75,7 @@ namespace HoskeeperTransfer
                 //_connection = new SqlConnection("Data Source=47.109.54.109;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=#txcucqcGZH9%QjF; MultipleActiveResultSets = true;connect timeout=90000000");
 
                 //荣美医疗
-                _connection = new SqlConnection("Data Source=47.113.216.174aaaaaa;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=2LqKDWz^!5D$eQxy; MultipleActiveResultSets = true;connect timeout=90000000");
+                _connection = new SqlConnection("Data Source=47.113.216.174;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=2LqKDWz^!5D$eQxy; MultipleActiveResultSets = true;connect timeout=90000000");
 
                 //青岛水上伊人
                 //_connection = new SqlConnection("Data Source=114.215.126.154;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=u5yB%CwkVbc2XD2%; MultipleActiveResultSets = true;connect timeout=90000000");
@@ -4576,7 +4576,7 @@ values(@Amount,@ChargeID,@OrderID,@BuyOrderUserID,@BuyVisitType,@CashCardAmount,
         {
             Console.WriteLine("划扣记录开始迁移");
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\荣美医疗\\项目划扣客户消费记录表.xlsx")))
+            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\荣美医疗\\2023年05月01日至2023年05月31日[项目划扣]客户消费情况明细表.xlsx")))
             {
                 ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
                 IEnumerable<DataTransferCommon> deptList = new List<DataTransferCommon>();
@@ -4696,9 +4696,10 @@ values(@Amount,@ChargeID,@OrderID,@BuyOrderUserID,@BuyVisitType,@CashCardAmount,
                     chargeTemp = chargeList.Where(u => u.Name == worksheet.Cells[row, 8].Value.ToString().Trim()).FirstOrDefault();
                     if (chargeTemp == null)
                     {
-                        continue;
-                        //result.Message = "第" + row + "行划扣项目不存在！";
-                        //return result;
+                        //continue;
+
+                        throw new Exception("第" + row + "行划扣项目不存在！");
+
                     }
 
                     if (!int.TryParse(worksheet.Cells[row, 13].Value.ToString().Trim(), out num))
@@ -4856,7 +4857,7 @@ from SmartOperation a
 inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
 
                 _connection.Execute(@"delete from SmartOperator where OperationID in (select distinct CustomerID from SmartOperation where CustomerID=0)", null, _transaction);
-                _connection.Execute(@"delete from SmartOperation where CustomerID=0", null, _transaction);
+                //_connection.Execute(@"delete from SmartOperation where CustomerID=0", null, _transaction);
                 _connection.Execute(@"ALTER TABLE [SmartOperation] DROP COLUMN [Custom10]", null, _transaction);
 
                 Console.WriteLine("划扣记录结束迁移");
@@ -4900,7 +4901,7 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
             var orderDetailList = _connection.Query<OrderDetail>(@"select b.ID as OrderDetailID,b.Num,b.Num as RestNum,a.CustomerID,b.ChargeID,a.CreateTime  
 from SmartOrder a
 inner join SmartOrderDetail b on a.ID=b.OrderID
-where a.PaidStatus in (2,3) order by a.CreateTime", null, _transaction);
+where a.PaidStatus in (2,3) order by a.CreateTime desc", null, _transaction);
             Console.WriteLine(@"111111111111111111111111");
 
             var operationList = _connection.Query<OrderDetail>(@"select a.ID as OperationID,a.CustomerID,a.OrderDetailID,a.Num,a.ChargeID 

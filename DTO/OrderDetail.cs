@@ -33,5 +33,7 @@ namespace HoskeeperTransfer
 
         public long CreateUserID { get; set; }
 
+        public long CashierID { get; set; }
+
     }
 }

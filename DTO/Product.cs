@@ -93,9 +93,21 @@ namespace HoskeeperTransfer.DTO
         /// </summary>
         public long? ChargeCategoryID { get; set; }
 
+        public long? ChargeID { get; set; }
+
         public CommonStatus IsSendPoint { get; set; }
 
 
         public DateTime? yxsj { get; set; }
+
+
+
+        public long HospitalID { get; set; }
+
+        public long ProductID { get; set; }
+
+
+        public int UnitType { get; set; }
+        public long UserID { get; set; }
     }
 }

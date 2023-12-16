@@ -12,5 +12,10 @@ namespace HoskeeperTransfer.DTO
         public decimal Price { get; set; }
         public string Size { get; set; }
         public string PinYin { get; set; }
+
+        public int SortNo { get; set; }
+        public long GroupID { get; set; }
+
+        public long CategoryID { get; set; }
     }
 }

@@ -72,13 +72,23 @@ namespace HoskeeperTransfer
 
 
                 //重庆时光
-                _connection = new SqlConnection("Data Source=47.109.54.109;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=#txcucqcGZH9%QjF; MultipleActiveResultSets = true;connect timeout=90000000");
+                //_connection = new SqlConnection("Data Source=47.109.54.109;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=#txcucqcGZH9%QjF; MultipleActiveResultSets = true;connect timeout=90000000");
 
 
                 //青岛水上伊人
                 //_connection = new SqlConnection("Data Source=114.215.126.154;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=u5yB%CwkVbc2XD2%; MultipleActiveResultSets = true;connect timeout=90000000");
 
-                _sourceSqlConnection = new SqlConnection(@"Data Source=30243r285b.zicp.vip,35472aaaa;Initial Catalog=his;Persist Security Info=True;User ID=ssyr;Password=ssyr730428*a;MultipleActiveResultSets = true;connect timeout=90000");
+                //爱美丽
+                //_connection = new SqlConnection("Data Source=47.122.24.4;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=ejvYwNbAdh@y%5dB; MultipleActiveResultSets = true;connect timeout=90000000");
+
+                //哈尔滨韩美整形
+                //_connection = new SqlConnection("Data Source=8.130.27.252,14378;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=nzzn;Password=Gq8!Ry29gS@AdtJw; MultipleActiveResultSets = true;connect timeout=90000000");
+
+                //盐城东方整形
+                _connection = new SqlConnection("Data Source=121.41.86.60;Initial Catalog=Hoskeeper;Persist Security Info=True;User ID=sa;Password=Qy3!%R4RvZ!8Vn!6; MultipleActiveResultSets = true;connect timeout=90000000");
+
+
+                _sourceSqlConnection = new SqlConnection(@"Data Source=30243r285b.zicp.vip,28289;Initial Catalog=his;Persist Security Info=True;User ID=nzzn;Password=Nzzn2023@;MultipleActiveResultSets = true;connect timeout=90000");
 
                 //_sourceSqlConnection = new SqlConnection(@"Data Source=30243r285b.zicp.vip,43544;Initial Catalog=his;Persist Security Info=True;User ID=nzzn;Password=nzzn2022;MultipleActiveResultSets = true;connect timeout=90000");
                 _connection.Open();
@@ -107,7 +117,7 @@ namespace HoskeeperTransfer
                 //Factory();
 
                 //Customer();
-                CallBackTaskCQSG();
+                //CallBackTaskCQSG();
                 //CallBack();
                 //ConsultExploit();
                 //ConsultManager();
@@ -128,6 +138,8 @@ namespace HoskeeperTransfer
 
                 //DeptCouument();
                 //CustomerID();
+                //OrderT();
+                //OrderProduct();
                 _transaction.Commit();
             }
             catch (Exception e)
@@ -724,8 +736,8 @@ when 'STP' then '0' else '1' end as Status,dpt_sort as SortNo from zsb_deparment
                 i++;
             }
 
-            _connection.Execute(@"insert into SmartDept(ID,Name,Remark,OpenStatus,SortNo,HospitalID) 
-values (@ID,@Name,@Remark,@Status,@SortNo,@HospitalID)", list, _transaction);
+            _connection.Execute(@"insert into SmartDept(ID,Name,Remark,OpenStatus,SortNo,HospitalID,Istriage) 
+values (@ID,@Name,@Remark,@Status,@SortNo,@HospitalID,0)", list, _transaction);
 
             Console.WriteLine("部门结束导入");
         }
@@ -755,6 +767,7 @@ case when cm_status='使用' then 1 else 0 end as Status from zsb_vendor");
                 {
                     u.Contact = "";
                 }
+
                 i++;
             }
 
@@ -974,8 +987,10 @@ values (@ID,@Name,@Remark,@Status,@CreateTime,@CreateUserID)", list, _transactio
             Console.WriteLine("产品开始导入");
             var list = _sourceSqlConnection.Query<Product>(@"select zpt_name as Name,zpt_oldid as PinYin,
 zpt_pducoms_amt as Price,b.unit_name as UnitName,c.unit_name as MinUnitName,zpt_addunit as Scale,d.pdt_name as CategoryID1,
-e.pdt_name as CategoryID2,f.pdt_name as CategoryID3,g.pdt_name as CategoryID4,zpt_order as Size,1 as IsSale,0 as IsEvaluate,zpt_price as SalePrice,
-                        case when d.pdt_name='物资类' then '物资库' else '药品库' end as WarehouseName
+e.pdt_name as CategoryID2,f.pdt_name as CategoryID3,g.pdt_name as CategoryID4,zpt_order as Size,1 as IsSale,
+0 as IsEvaluate,zpt_price as SalePrice,case zpt_status when 'STP' then '0' else '1' end as Status,
+                        case when zpt_recprj='kf' then '库房' when a.zpt_recprj='bg' then '办公耗材'  
+												when a.zpt_recprj='yf' then '药房'   when a.zpt_recprj='hz' then '化妆品库'  else '药房' end as WarehouseName
 from zsb_product a
 left join aps_units b on b.unit_code=a.zpt_unit
 left join aps_units c on c.unit_code=a.zpt_sunit
@@ -984,7 +999,7 @@ left join zsb_pdutype2 e on a.zpt_ptype2=e.pdt_code
 left join zsb_pdutype3 f on a.zpt_ptype3=f.pdt_code
 left join zsb_pdutype4 g on a.zpt_ptype4=g.pdt_code
  where zpt_type='SAL'
-
+ 
 ");
             var warehouseList = _connection.Query<DataTransferChannel>(@"select * from SmartWarehouse", null, _transaction);
             var productCategoryList = _connection.Query<DataTransferChannel>(@"select * from SmartProductCategory", null, _transaction);
@@ -1002,7 +1017,7 @@ left join zsb_pdutype4 g on a.zpt_ptype4=g.pdt_code
                 {
                     u.CategoryID = productCategoryList.Where(x => x.Name == u.CategoryID4).FirstOrDefault().ID;
                 }
-                else if (!u.CategoryID3.IsNullOrEmpty())
+                else if (!u.CategoryID3.IsNullOrEmpty() && u.CategoryID3 != "111")
                 {
                     u.CategoryID = productCategoryList.Where(x => x.Name == u.CategoryID3).FirstOrDefault().ID;
                 }
@@ -1029,7 +1044,7 @@ left join zsb_pdutype4 g on a.zpt_ptype4=g.pdt_code
                     {
                         chargeCategoryID = chargeCategoryategoryList.Where(x => x.Name == u.CategoryID4).FirstOrDefault().ID;
                     }
-                    else if (!u.CategoryID3.IsNullOrEmpty())
+                    else if (!u.CategoryID3.IsNullOrEmpty() && u.CategoryID3 != "111")
                     {
                         chargeCategoryID = chargeCategoryategoryList.Where(x => x.Name == u.CategoryID3).FirstOrDefault().ID;
                     }
@@ -1069,6 +1084,8 @@ left join zsb_pdutype4 g on a.zpt_ptype4=g.pdt_code
             _connection.Execute(@"insert into SmartProduct(ID,Name,PinYin,CategoryID,Size,Price,[Status],Remark,UnitID,MiniUnitID,Scale,IsSale,SalePrice,WarehouseID,IsEvaluate,ChargeCategoryID,IsSendPoint)
  values(@ID, @Name, @PinYin, @CategoryID, @Size, @Price, @Status, @Remark, @UnitID, @MiniUnitID, @Scale,@IsSale,@SalePrice,@WarehouseID,@IsEvaluate,@ChargeCategoryID,@IsSendPoint)",
                    list, _transaction);
+            _connection.Execute(@"insert into SmartProductWarehouse select ID,WarehouseID,1 from SmartProduct where WarehouseID is not null",
+                   null, _transaction);
             if (chargeResult.Count() > 0)
             {
                 _connection.Execute(@"insert into SmartCharge(ID,Name,CategoryID,PinYin,Price,Status,Remark,UnitID,Size,
@@ -1171,7 +1188,7 @@ case when pdt_status='STP' then 0 else 1 end as status,pdt_remark as Remark from
                 else
                 {
                     //**************************************************************************************************************************************
-                    u.PID = 15920437237122048;
+                    u.PID = 16414737473520640;
                 }
             }
 
@@ -1288,7 +1305,7 @@ left join zsb_pdutype4 g on a.zpt_ptype4=g.pdt_code
 
                 if (chargeCategoryID == null)
                 {
-                    chargeCategoryID = 15920429925401600;
+                    chargeCategoryID = 10002;
                 }
 
                 chargeResult.Add(new Charge()
@@ -1329,14 +1346,14 @@ values(@ID, @Name, @CategoryID, @PinYin, @Price, @Status, @Remark, @UnitID,@Size
         {
             //Console.WriteLine("(S)中下身吸脂基础型".PinYin());
             Console.WriteLine("项目套餐开始导入");
-            var listCharge = _connection.Query<Charge>(@"select * from SmartCharge", null, _transaction);
+            var listCharge = _connection.Query<Charge>(@"select * from SmartCharge order by Status desc", null, _transaction);
             var list = _sourceSqlConnection.Query<ChargeSet>(@"select pth_code as OldID,pth_name as Name, pth_tolamt as Price, pth_oldid as PinYin,
 case when [pth_status]='STP' then 0 else 1 end as Status from zsb_pdutol_h");
 
             var listDetaik = _sourceSqlConnection.Query<SmartChargeSetDetail>(@"select pth_code as OldSetID,
-a.zpt_num as Num,a.zpt_price as Amount,b.zpt_name as  ChargeName
+a.zpt_num as Num,a.zpt_price as Amount,a.zpt_name as  ChargeName 
 from zsb_pdutol_det a
-inner join zsb_product b on a.zpt_code=b.zpt_code
+ 
 ");
             int i = 10000, j = 10000;
             DateTime now = DateTime.Now;
@@ -1368,7 +1385,7 @@ inner join zsb_product b on a.zpt_code=b.zpt_code
             _connection.Execute(@"insert into SmartChargeSet(ID,Name,Price,Status,Remark,PinYin,TimeLimit,TimeStart,Days,HospitalID,CreateUserID,CreateTime) 
                                     VALUES(@ID, @Name, @Price, @Status, @Remark, @PinYin, @TimeLimit, @TimeStart, @Days, @HospitalID,@CreateUserID,@CreateTime)", list, _transaction);
 
-            //_connection.Execute(@"update SmartChargeSet set PinYin='' where PinYin is null", null, _transaction);
+            _connection.Execute(@"delete from SmartChargeSet where id not in (select SetID from SmartChargeSetDetail)", null, _transaction);
             Console.WriteLine("项目套餐结束导入");
         }
 
@@ -1378,7 +1395,7 @@ inner join zsb_product b on a.zpt_code=b.zpt_code
         public static void NumChargeSet()
         {
             Console.WriteLine("项目套餐开始导入");
-            var listCharge = _connection.Query<Charge>(@"select * from SmartCharge", null, _transaction);
+            var listCharge = _connection.Query<Charge>(@"select * from SmartCharge order by status desc", null, _transaction);
             //            var list = _sourceSqlConnection.Query<ChargeSet>(@"select pth_code as OldID,pth_name as Name, pth_tolamt as Price, pth_oldid as PinYin,
             //case when [pth_status]='STP' then 0 else 1 end as Status from zsb_pdutol_h");
 
@@ -1440,13 +1457,17 @@ from zsb_employee a
 left join zsb_deparment b on a.emp_dpt_code=b.dpt_code
 ");
 
-            var deptList = _connection.Query<DataTransferChannel>(@"select ID,Name from SmartDept", null, _transaction);
+            var deptList = _connection.Query<DataTransferChannel>(@"select ID,Name from SmartDept order by openstatus desc", null, _transaction);
 
             List<UserRole> roleList = new List<UserRole>();
             DateTime now = DateTime.Now;
             int i = 10001;
             foreach (var u in list)
             {
+                if (u.DeptName.IsNullOrEmpty())
+                {
+                    u.DeptName = "会员中心";
+                }
                 u.ID = i;
                 u.HospitalID = _hospitalID;
                 u.Discount = 1;
@@ -1457,7 +1478,7 @@ left join zsb_deparment b on a.emp_dpt_code=b.dpt_code
                 u.DeptID = deptList.Where(x => x.Name == u.DeptName).FirstOrDefault().ID;
                 roleList.Add(new UserRole()
                 {
-                    RoleID = 15920424208892928,
+                    RoleID = 16401853823550464,
                     UserID = u.ID,
                     ID = u.ID
                 });
@@ -1480,14 +1501,14 @@ left join zsb_deparment b on a.emp_dpt_code=b.dpt_code
         public static void Customer()
         {
             Console.WriteLine("顾客开始迁移");
-            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\水上伊人\\客户资料明细表.xlsx")))
+            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\东方整形\\客户资料明细表02.xlsx")))
             {
                 ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-                List<DataTransferCommon> customerList = new List<DataTransferCommon>();
+                //List<DataTransferCommon> customerList = new List<DataTransferCommon>();
                 List<DataTransferCommon> channelList = new List<DataTransferCommon>();
                 IEnumerable<DataTransferCommon> symptomList = new List<DataTransferCommon>();
                 IEnumerable<DataTransferCommon> userList = new List<DataTransferCommon>();
-                customerList = _connection.Query<DataTransferCommon>(@"select ID,Mobile as Name,[MobileBackup] as Account from [SmartCustomer]", null, _transaction).ToList();
+                //customerList = _connection.Query<DataTransferCommon>(@"select ID,Mobile as Name,[MobileBackup] as Account from [SmartCustomer]", null, _transaction).ToList();
                 channelList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartChannel] order by Status desc", null, _transaction).ToList();
                 symptomList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartSymptom] order by Status desc", null, _transaction);
                 userList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartUser] where HospitalID=@HospitalID order by Status desc", new { HospitalID = 1 }, _transaction);
@@ -1519,8 +1540,8 @@ left join zsb_deparment b on a.emp_dpt_code=b.dpt_code
                 customerAddList.Columns.Add("MobileBackup", typeof(string));
                 customerAddList.Columns.Add("HospitalID", typeof(long));
                 customerAddList.Columns.Add("Address", typeof(string));
-               // customerAddList.Columns.Add("Custom8", typeof(string));
-                customerAddList.Columns.Add("Custom9", typeof(string));
+                customerAddList.Columns.Add("Custom1", typeof(string));
+                customerAddList.Columns.Add("Custom2", typeof(string));
                 customerAddList.Columns.Add("Custom10", typeof(string));
                 DataTable ownerShipAddList = new DataTable("SmartOwnerShip");
                 ownerShipAddList.Columns.Add("CustomerID", typeof(long));
@@ -1537,6 +1558,8 @@ left join zsb_deparment b on a.emp_dpt_code=b.dpt_code
                 GenderEnum gender = GenderEnum.Girl;
                 DataTransferCommon exploitUserTemp = null;
                 DataTransferCommon managerUserTemp = null;
+                DataTransferCommon customerCallUserTemp = null;
+
                 long customerID;
                 decimal point = 0;
                 decimal commission = 0;
@@ -1556,7 +1579,7 @@ left join zsb_deparment b on a.emp_dpt_code=b.dpt_code
                     exploitUserTemp = null;
                     managerUserTemp = null;
                     customerTemp = null;
-
+                    customerCallUserTemp = null;
                     //顾客姓名
                     if (worksheet.Cells[row, 2].Value == null || worksheet.Cells[row, 2].Value.ToString().Trim().IsNullOrEmpty())
                     {
@@ -1618,9 +1641,16 @@ left join zsb_deparment b on a.emp_dpt_code=b.dpt_code
                     //}
                     //渠道
                     //**************************************************************************************************************************
-                    if (worksheet.Cells[row, 9].Value == null || worksheet.Cells[row, 9].Value.ToString().Trim().IsNullOrEmpty())
+                    if (worksheet.Cells[row, 10].Value == null || worksheet.Cells[row, 10].Value.ToString().Trim().IsNullOrEmpty())
                     {
-                        worksheet.Cells[row, 9].Value = "空渠道";
+                        if (worksheet.Cells[row, 9].Value == null || worksheet.Cells[row, 9].Value.ToString().Trim().IsNullOrEmpty())
+                        {
+                            worksheet.Cells[row, 10].Value = "空渠道";
+                        }
+                        else
+                        {
+                            worksheet.Cells[row, 10].Value = worksheet.Cells[row, 9].Value;
+                        }
                         //result.Message = "第" + row + "行渠道不能为空！";
                         //return result;
                     }
@@ -1664,13 +1694,13 @@ left join zsb_deparment b on a.emp_dpt_code=b.dpt_code
                     //}
 
                     //*********************************************************************************************
-                    channelTemp = channelList.Where(u => u.Name == worksheet.Cells[row, 9].Value.ToString().Trim()).FirstOrDefault();
+                    channelTemp = channelList.Where(u => u.Name == worksheet.Cells[row, 10].Value.ToString().Trim()).FirstOrDefault();
                     if (channelTemp == null)
                     {
                         //**********************************************************************************************************************
                         channelTemp = new DataTransferCommon()
                         {
-                            ID = 15920894075225088
+                            ID = 16569298939298816
                         };
                         //channelTemp = new DataTransferCommon()
                         //{
@@ -1717,7 +1747,7 @@ left join zsb_deparment b on a.emp_dpt_code=b.dpt_code
                     }
 
 
-                    if(worksheet.Cells[row, 6].Value == null)
+                    if (worksheet.Cells[row, 6].Value == null)
                     {
                         if (!DateTime.TryParse(worksheet.Cells[row, 6].Value.ToString().Trim(), out createTime))
                         {
@@ -1726,9 +1756,9 @@ left join zsb_deparment b on a.emp_dpt_code=b.dpt_code
                     }
                     else
                     {
-                        if(worksheet.Cells[row, 5].Value == null)
+                        if (worksheet.Cells[row, 5].Value == null)
                         {
-                            createTime = DateTime.Parse("2015-01-01");
+                            createTime = DateTime.Parse("2010-01-01");
                         }
                         else
                         {
@@ -1737,9 +1767,9 @@ left join zsb_deparment b on a.emp_dpt_code=b.dpt_code
                                 throw new Exception("第" + row + "行登记时间2异常！");
                             }
                         }
-                        
+
                     }
-                    
+
                     createTime = createTime.AddSeconds(1);
                     createUserTemp = new DataTransferCommon()
                     {
@@ -1747,20 +1777,28 @@ left join zsb_deparment b on a.emp_dpt_code=b.dpt_code
                         Name = "超级管理员"
                     };
 
-                    if (worksheet.Cells[row, 29].Value != null)
+                    if (worksheet.Cells[row, 29].Value != null && worksheet.Cells[row, 29].Value.ToString() != "")
                     {
                         exploitUserTemp = userList.Where(u => u.Name == worksheet.Cells[row, 29].Value.ToString()).FirstOrDefault();
                         if (exploitUserTemp == null)
                         {
-                            //throw new Exception("第" + row + "行网电咨询师不存在！");
+                            throw new Exception("第" + row + "行网电咨询师不存在！");
                         }
                     }
-                    if (worksheet.Cells[row, 28].Value != null)
+                    if (worksheet.Cells[row, 28].Value != null && worksheet.Cells[row, 28].Value.ToString() != "")
                     {
                         managerUserTemp = userList.Where(u => u.Name == worksheet.Cells[row, 28].Value.ToString()).FirstOrDefault();
                         if (managerUserTemp == null)
                         {
                             throw new Exception("第" + row + "行现场咨询师不存在！");
+                        }
+                    }
+                    if (worksheet.Cells[row, 31].Value != null && worksheet.Cells[row, 31].Value.ToString() != "")
+                    {
+                        customerCallUserTemp = userList.Where(u => u.Name == worksheet.Cells[row, 31].Value.ToString()).FirstOrDefault();
+                        if (customerCallUserTemp == null)
+                        {
+                            throw new Exception("第" + row + "行咨询客服不存在！");
                         }
                     }
                     customerID = OrderAutoNumber.Instance().Number(OrderAutoNumber.customerStr);
@@ -1913,16 +1951,30 @@ left join zsb_deparment b on a.emp_dpt_code=b.dpt_code
                     }
                     if (worksheet.Cells[row, 7].Value == null)
                     {
-                        dr["Custom9"] = "";
+                        dr["Custom2"] = "";
                     }
                     else
                     {
                         //**************************************************************************************************************************************************************************
-                        dr["Custom9"] = worksheet.Cells[row, 7].Value.ToString().Trim();
+                        dr["Custom2"] = worksheet.Cells[row, 7].Value.ToString().Trim();
                         if (worksheet.Cells[row, 7].Value.ToString().Trim().Length > 90)
                         {
                             throw new Exception("第" + row + "行档案号异常！");
                         }
+                    }
+
+                    if (worksheet.Cells[row, 13].Value == null)
+                    {
+                        dr["Custom1"] = "";
+                    }
+                    else
+                    {
+                        //**************************************************************************************************************************************************************************
+                        //dr["Custom1"] = worksheet.Cells[row, 13].Value.ToString().Trim();
+                        //if (worksheet.Cells[row, 13].Value.ToString().Trim().Length > 90)
+                        //{
+                        //    throw new Exception("第" + row + "行身份证异常！");
+                        //}
                     }
 
                     //dr["Custom8"] = worksheet.Cells[row, 24].Value.ToString().Trim();
@@ -1937,12 +1989,12 @@ left join zsb_deparment b on a.emp_dpt_code=b.dpt_code
                     }
                     customerAddList.Rows.Add(dr);
 
-                    customerList.Add(new DataTransferCommon()
-                    {
-                        ID = customerID,
-                        Name = dr["Mobile"].ToString(),
-                        Account = dr["MobileBackup"] == null ? "" : dr["MobileBackup"].ToString()
-                    });
+                    //customerList.Add(new DataTransferCommon()
+                    //{
+                    //    ID = customerID,
+                    //    Name = dr["Mobile"].ToString(),
+                    //    Account = dr["MobileBackup"] == null ? "" : dr["MobileBackup"].ToString()
+                    //});
 
                     if (exploitUserTemp != null)
                     {
@@ -1967,6 +2019,18 @@ left join zsb_deparment b on a.emp_dpt_code=b.dpt_code
                         dr2["Type"] = OwnerShipType.Manager.CastTo<int>();
                         dr2["UserID"] = managerUserTemp.ID;
                         ownerShipAddList.Rows.Add(dr2);
+                    }
+                    if (customerCallUserTemp != null)
+                    {
+                        DataRow dr5 = ownerShipAddList.NewRow();
+                        dr5["CustomerID"] = customerID;
+                        dr5["EndTime"] = "9999-12-31 23:59:59";
+                        dr5["StartTime"] = createTime.ToString();
+                        dr5["HospitalID"] = 1;
+                        dr5["Remark"] = "数据迁移";
+                        dr5["Type"] = OwnerShipType.CustomerCall.CastTo<int>();
+                        dr5["UserID"] = customerCallUserTemp.ID;
+                        ownerShipAddList.Rows.Add(dr5);
                     }
                 }
 
@@ -2252,7 +2316,7 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
         {
             Console.WriteLine("网电咨询记录开始迁移");
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\南京环亚\\电话网络情况明细表.xlsx")))
+            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\东方整形\\电话网络情况明细表02.xlsx")))
             {
                 ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
                 int rowCount = worksheet.Dimension.Rows;
@@ -2265,7 +2329,7 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                 //customerList = _connection.Query<DataTransferCommon>(@"select Custom10 as Name,ID from [SmartCustomer]");
                 toolList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartTool]", null, _transaction);
                 symptomList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartSymptom]", null, _transaction);
-                userList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartUser] where HospitalID=@HospitalID", new { HospitalID = 1 }, _transaction);
+                userList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartUser] where HospitalID=@HospitalID order by status desc", new { HospitalID = 1 }, _transaction);
 
 
                 DataTable consultList = new DataTable("SmartConsult");
@@ -2317,7 +2381,7 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                     //}
                     if (worksheet.Cells[row, 7].Value == null || worksheet.Cells[row, 7].Value.ToString().Trim().IsNullOrEmpty())
                     {
-                        worksheet.Cells[row, 7].Value = "空咨询";
+                        worksheet.Cells[row, 7].Value = "空";
                         //result.Message = "第" + row + "行咨询症状不能为空！";
                         //return result;
                     }
@@ -2336,11 +2400,11 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                         //symptomTemp = symptomList.Where(u => u.Name == "其它").FirstOrDefault();
                         if (symptomTemp == null)
                         {
-                            //throw new Exception("第" + row + "行症状不存在！");
-                            symptomTemp = new DataTransferCommon()
-                            {
-                                ID = 15553291689231360
-                            };
+                            throw new Exception("第" + row + "行症状不存在！");
+                            //symptomTemp = new DataTransferCommon()
+                            //{
+                            //    ID = 16539730830132224
+                            //};
                         }
                     }
                     createUserTemp = userList.Where(u => u.Name == worksheet.Cells[row, 5].Value.ToString().Trim()).FirstOrDefault();
@@ -2449,7 +2513,7 @@ inner join SmartConsultSymptomDetail c on b.ID=c.ConsultID", null, _transaction)
         {
             Console.WriteLine("现场咨询记录开始迁移");
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\水上伊人\\分诊咨询历史记录表.xlsx")))
+            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\东方整形\\分诊咨询历史记录表02.xlsx")))
             {
                 ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
                 IEnumerable<DataTransferCommon> toolList = new List<DataTransferCommon>();
@@ -2458,7 +2522,7 @@ inner join SmartConsultSymptomDetail c on b.ID=c.ConsultID", null, _transaction)
                 //customerList = _connection.Query<DataTransferCommon>(@"select Custom10 as Name,ID from [SmartCustomer]");
                 toolList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartTool]", null, _transaction);
                 symptomList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartSymptom]", null, _transaction);
-                userList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartUser] where HospitalID=@HospitalID", new { HospitalID = 1 }, _transaction);
+                userList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartUser] where HospitalID=@HospitalID order by status desc", new { HospitalID = 1 }, _transaction);
 
                 int rowCount = worksheet.Dimension.Rows;
                 int ColCount = worksheet.Dimension.Columns;
@@ -2530,12 +2594,12 @@ inner join SmartConsultSymptomDetail c on b.ID=c.ConsultID", null, _transaction)
                         //symptomTemp = symptomList.Where(u => u.Name == "其它").FirstOrDefault();
                         if (symptomTemp == null)
                         {
-                            //throw new Exception("第" + row + "行症状不存在！");
+                            throw new Exception("第" + row + "行症状不存在！");
                             //*******************************************************************************************************************************
-                            symptomTemp = new DataTransferCommon()
-                            {
-                                ID = 15921112189223936
-                            };
+                            //symptomTemp = new DataTransferCommon()
+                            //{
+                            //    ID = 16539730830132224
+                            //};
                         }
                     }
                     createUserTemp = userList.Where(u => u.Name == worksheet.Cells[row, 7].Value.ToString().Trim()).FirstOrDefault();
@@ -2549,7 +2613,7 @@ inner join SmartConsultSymptomDetail c on b.ID=c.ConsultID", null, _transaction)
                         //result.Message = "第" + row + "行咨询师不存在！";
                         //return result;
                     }
-                    toolTemp = toolList.Where(u => u.Name == "电话").FirstOrDefault();
+                    toolTemp = toolList.Where(u => u.Name == "面对面").FirstOrDefault();
                     if (toolTemp == null)
                     {
                         throw new Exception("第" + row + "行工具不存在！");
@@ -2641,7 +2705,7 @@ inner join SmartConsultSymptomDetail c on b.ID=c.ConsultID", null, _transaction)
         {
             Console.WriteLine("回访计划记录开始迁移");
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\重庆时光\\CallBackTask3.xlsx")))
+            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\东方整形\\CallBackTask.xlsx")))
             {
                 ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
                 int rowCount = worksheet.Dimension.Rows;
@@ -2653,7 +2717,7 @@ inner join SmartConsultSymptomDetail c on b.ID=c.ConsultID", null, _transaction)
 
                 //customerList = _connection.Query<DataTransferCommon>(@"select Mobile as Name,ID from [SmartCustomer]");
                 callbackCategoryList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartCallbackCategory]", null, _transaction);
-                userList = _connection.Query<DataTransferCommon>(@"select ID,Account as Name from [SmartUser] where HospitalID=@HospitalID order by Status desc", new { HospitalID = 1 }, _transaction);
+                userList = _connection.Query<DataTransferCommon>(@"select ID, Name from [SmartUser] where HospitalID=@HospitalID order by Status desc", new { HospitalID = 1 }, _transaction);
 
 
                 DataTable callbackList = new DataTable("SmartCallback");
@@ -2728,7 +2792,7 @@ inner join SmartConsultSymptomDetail c on b.ID=c.ConsultID", null, _transaction)
                         ID = 0
                     };
 
-                     createUserTemp = new DataTransferCommon()
+                    createUserTemp = new DataTransferCommon()
                     {
                         ID = 1
                     };
@@ -2828,7 +2892,7 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
         {
             Console.WriteLine("回访记录开始迁移");
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\水上伊人\\CallBack.xlsx")))
+            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\东方整形\\CallBack.xlsx")))
             {
                 ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
                 int rowCount = worksheet.Dimension.Rows;
@@ -2858,6 +2922,7 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                 callbackList.Columns.Add("TaskCreateUserID", typeof(long));
                 callbackList.Columns.Add("Status", typeof(int));
                 callbackList.Columns.Add("HospitalID", typeof(long));
+                callbackList.Columns.Add("ResultType", typeof(long));
                 callbackList.Columns.Add("Custom10", typeof(string));
 
                 DataTransferCommon categoryTemp = null;
@@ -3054,7 +3119,10 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                     dr["TaskCreateUserID"] = taskCreateUserTemp.ID;
                     dr["Status"] = 1;
                     dr["HospitalID"] = 1;
-                    dr["Custom10"] = worksheet.Cells[row, 1].Value.ToString().Trim().Substring(1);
+                    //************************************************************************************************************************************************************************
+                    dr["ResultType"] = 16415564347851776;
+
+                    dr["Custom10"] = worksheet.Cells[row, 1].Value.ToString().Trim();
 
                     callbackList.Rows.Add(dr);
                 }
@@ -3094,7 +3162,7 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
             Console.WriteLine("上门记录开始迁移");
 
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\水上伊人\\分诊咨询历史记录表.xlsx")))
+            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\东方整形\\分诊咨询历史记录表02.xlsx")))
             {
                 ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
 
@@ -3103,7 +3171,7 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                 IEnumerable<DataTransferCommon> userList = new List<DataTransferCommon>();
                 customerList = _connection.Query<DataTransferCommon>(@"select Custom10 as Name,ID from [SmartCustomer]", null, _transaction);
                 deptList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartDept]", null, _transaction);
-                userList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartUser] where HospitalID=@HospitalID", new { HospitalID = 1 }, _transaction);
+                userList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartUser] where HospitalID=@HospitalID order by status desc", new { HospitalID = 1 }, _transaction);
 
                 int rowCount = worksheet.Dimension.Rows;
                 int ColCount = worksheet.Dimension.Columns;
@@ -3168,9 +3236,9 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                     {
                         throw new Exception("第" + row + "行顾客手机号不能为空！");
                     }
-                    if (worksheet.Cells[row, 30].Value == null || worksheet.Cells[row, 30].Value.ToString().Trim().IsNullOrEmpty())
+                    if (worksheet.Cells[row, 35].Value == null || worksheet.Cells[row, 35].Value.ToString().Trim().IsNullOrEmpty())
                     {
-                        worksheet.Cells[row, 30].Value = "超级管理员";
+                        worksheet.Cells[row, 35].Value = "超级管理员";
                     }
                     if (worksheet.Cells[row, 8].Value == null || worksheet.Cells[row, 8].Value.ToString().Trim().IsNullOrEmpty())
                     {
@@ -3195,7 +3263,7 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                     //    return result;
                     //}
 
-                    createUserTemp = userList.Where(u => u.Name == worksheet.Cells[row, 30].Value.ToString().Trim()).FirstOrDefault();
+                    createUserTemp = userList.Where(u => u.Name == worksheet.Cells[row, 35].Value.ToString().Trim()).FirstOrDefault();
                     if (createUserTemp == null)
                     {
                         createUserTemp = new DataTransferCommon()
@@ -3238,13 +3306,13 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                         throw new Exception("第" + row + "行到诊状态异常！");
                     }
 
-                    if (worksheet.Cells[row, 4].Value.ToString().Trim() == "未成交")
+                    if (worksheet.Cells[row, 4].Value.ToString().Trim() == "成交")
                     {
-                        dealType = 0;
+                        dealType = 1;
                     }
                     else
                     {
-                        dealType = 1;
+                        dealType = 0;
                     }
                     if (worksheet.Cells[row, 9].Value != null && !worksheet.Cells[row, 9].Value.ToString().Trim().IsNullOrEmpty())
                     {
@@ -3385,7 +3453,7 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
         {
             Console.WriteLine("优惠券记录开始迁移");
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\水上伊人\\消费券情况明细表.xlsx")))
+            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\东方整形\\消费券情况明细表.xlsx")))
             {
                 ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
 
@@ -3394,7 +3462,7 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                 IEnumerable<DataTransferCommon> userList = new List<DataTransferCommon>();
                 //customerList = _connection.Query<DataTransferCommon>(@"select Custom10 as Name,ID from [SmartCustomer]");
                 couponCategoryList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartCouponCategory]", null, _transaction).ToList();
-                userList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartUser] where HospitalID=@HospitalID", new { HospitalID = 1 }, _transaction);
+                userList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartUser] where HospitalID=@HospitalID order by status desc", new { HospitalID = 1 }, _transaction);
 
                 int rowCount = worksheet.Dimension.Rows;
                 int ColCount = worksheet.Dimension.Columns;
@@ -3566,7 +3634,7 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
         {
             Console.WriteLine("预收款记录开始迁移");
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\水上伊人\\客户资料明细表定金.xlsx")))
+            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\东方整形\\客户资料明细表定金02.xlsx")))
             {
                 ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
 
@@ -3762,7 +3830,7 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
             Console.WriteLine("订单记录开始迁移");
 
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\水上伊人\\客户订购项目情况表.xlsx")))
+            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\东方整形\\客户订购项目情况表03.xlsx")))
             {
                 ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
 
@@ -3770,9 +3838,9 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                 IEnumerable<DataTransferCommon> userList = new List<DataTransferCommon>();
                 IEnumerable<DataTransferCommon> chargeSetList = new List<DataTransferCommon>();
                 //customerList = _connection.Query<DataTransferCommon>(@"select Custom10 as Name,ID from [SmartCustomer]");
-                chargeList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartCharge]", null, _transaction).ToList();
-                chargeSetList = _connection.Query<DataTransferCommon>(@"select ID,[Name],Price from [SmartChargeSet] ", new { HospitalID = 1 }, _transaction);
-                userList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartUser] where HospitalID=@HospitalID", new { HospitalID = 1 }, _transaction);
+                chargeList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartCharge] order by status desc", null, _transaction).ToList();
+                chargeSetList = _connection.Query<DataTransferCommon>(@"select ID,[Name],Price from [SmartChargeSet] order by status desc", new { HospitalID = 1 }, _transaction);
+                userList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartUser] where HospitalID=@HospitalID order by status desc", new { HospitalID = 1 }, _transaction);
 
                 int rowCount = worksheet.Dimension.Rows;
                 int ColCount = worksheet.Dimension.Columns;
@@ -3800,11 +3868,12 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                 int orderID = 10000;
 
                 List<object> chargeAddList = new List<object>();
-                List<object> customerAddList = new List<object>();
+                //List<object> customerAddList = new List<object>();
                 for (int row = 2; row <= rowCount; row++)
                 {
                     exploitTemp = null;
                     managerTemp = null;
+                    //expirationDate = null;
                     if (worksheet.Cells[row, 1].Value == null && worksheet.Cells[row, 2].Value == null && worksheet.Cells[row, 3].Value == null)
                     {
                         break;
@@ -3825,9 +3894,9 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                     {
                         throw new Exception("第" + row + "行下单时间不能为空！");
                     }
-                    if (worksheet.Cells[row, 22].Value == null || worksheet.Cells[row, 22].Value.ToString().Trim().IsNullOrEmpty())
+                    if (worksheet.Cells[row, 21].Value == null || worksheet.Cells[row, 21].Value.ToString().Trim().IsNullOrEmpty())
                     {
-                        worksheet.Cells[row, 22].Value = "超级管理员";
+                        //worksheet.Cells[row, 21].Value = "超级管理员";
                         //result.Message = "第" + row + "行下单人不能为空！";
                         //return result;
                     }
@@ -3871,7 +3940,7 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                     temp.CreateTime = createTime.AddSeconds(1);
 
 
-                    if (worksheet.Cells[row, 21].Value == null)
+                    if (worksheet.Cells[row, 21].Value == null || worksheet.Cells[row, 21].Value.ToString().Trim().IsNullOrEmpty())
                     {
                         createUserTemp = new DataTransferCommon()
                         {
@@ -4011,33 +4080,42 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                     //    temp.ExpirationDate = expirationDate.Date;
                     //}
 
-                    if (worksheet.Cells[row, 20].Value.ToString().Trim() == "过期")
+                    if (worksheet.Cells[row, 25].Value != null && !worksheet.Cells[row, 25].Value.ToString().Trim().IsNullOrEmpty())
                     {
-                        if (worksheet.Cells[row, 7].Value.ToString().Trim().Contains("年卡"))
+                        if (!DateTime.TryParse(worksheet.Cells[row, 25].Value.ToString().Trim(), out expirationDate))
                         {
-                            temp.ExpirationDate = temp.CreateTime.AddYears(1);
+                            throw new Exception("第" + row + "行过期时间异常！");
                         }
-                        else if (worksheet.Cells[row, 7].Value.ToString().Trim().Contains("季卡"))
-                        {
-                            temp.ExpirationDate = temp.CreateTime.AddMonths(3);
-                        }
-                        else
-                        {
-                            temp.ExpirationDate = DateTime.Parse("2022-01-01");
-                        }
+                        temp.ExpirationDate = expirationDate;
+                    }
 
-                    }
-                    else if (worksheet.Cells[row, 20].Value.ToString().Trim() == "退费")
-                    {
-                        temp.RestNum = 0;
-                    }
+                    //if (worksheet.Cells[row, 20].Value.ToString().Trim() == "过期")
+                    //{
+                    //    if (worksheet.Cells[row, 7].Value.ToString().Trim().Contains("年卡"))
+                    //    {
+                    //        temp.ExpirationDate = temp.CreateTime.AddYears(1);
+                    //    }
+                    //    else if (worksheet.Cells[row, 7].Value.ToString().Trim().Contains("季卡"))
+                    //    {
+                    //        temp.ExpirationDate = temp.CreateTime.AddMonths(3);
+                    //    }
+                    //    else
+                    //    {
+                    //        temp.ExpirationDate = DateTime.Parse("2022-01-01");
+                    //    }
+
+                    //}
+                    //else if (worksheet.Cells[row, 20].Value.ToString().Trim() == "退费")
+                    //{
+                    //    temp.RestNum = 0;
+                    //}
 
                     if (!decimal.TryParse(worksheet.Cells[row, 9].Value.ToString().Trim(), out originAmount))
                     {
                         throw new Exception("第" + row + "行原始金额异常！");
                     }
                     temp.Price = originAmount;
-                    if (!decimal.TryParse(worksheet.Cells[row, 12].Value.ToString().Trim(), out amount))
+                    if (!decimal.TryParse(worksheet.Cells[row, 11].Value.ToString().Trim(), out amount))
                     {
                         throw new Exception("第" + row + "行成交金额异常！");
                     }
@@ -4052,7 +4130,7 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                     //    result.Message = "第" + row + "行预售款支付异常！";
                     //    return result;
                     //}
-                    temp.DepositAmount = 0;
+                    //temp.DepositAmount = 0;
                     //if (!decimal.TryParse(worksheet.Cells[row, 15].Value.ToString().Trim(), out couponAmount))
                     //{
                     //    throw new Exception("第" + row + "行代金券支付异常！");
@@ -4068,14 +4146,18 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                     {
                         throw new Exception("第" + row + "行剩余欠款异常！");
                     }
-                    temp.DebtAmount = debtAmount;
-                    temp.FinalPrice += debtAmount;
-                    if (temp.FinalPrice != temp.CashAmount + temp.DepositAmount + temp.CouponAmount + temp.CommissionAmount + temp.DebtAmount)
-                    {
-                        temp.CashAmount = temp.FinalPrice - (temp.DepositAmount + temp.CouponAmount + temp.CommissionAmount + temp.DebtAmount);
-                        //result.Message = "第" + row + "行成交金额不等于现金+预收款+券+佣金+欠款！";
-                        //return result;
-                    }
+                    temp.DebtAmount = decimal.Parse(worksheet.Cells[row, 13].Value.ToString().Trim()) +
+                        decimal.Parse(worksheet.Cells[row, 24].Value.ToString().Trim());
+                    //temp.FinalPrice += debtAmount;
+                    temp.DepositAmount = 0;
+                    temp.CashAmount += (temp.FinalPrice - (temp.CouponAmount + temp.CommissionAmount + temp.DebtAmount + temp.CashAmount));
+                    //temp.DepositAmount = temp.FinalPrice - (temp.CouponAmount + temp.CommissionAmount + temp.DebtAmount + temp.CashAmount);
+                    //if (temp.FinalPrice != temp.CashAmount + temp.DepositAmount + temp.CouponAmount + temp.CommissionAmount + temp.DebtAmount)
+                    //{
+                    //    temp.CashAmount = temp.FinalPrice - (temp.DepositAmount + temp.CouponAmount + temp.CommissionAmount + temp.DebtAmount);
+                    //    //result.Message = "第" + row + "行成交金额不等于现金+预收款+券+佣金+欠款！";
+                    //    //return result;
+                    //}
                     visitType = TransferVisitType("再消费");
                     if (visitType == null)
                     {
@@ -4104,6 +4186,20 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                         else
                         {
                             temp.ManagerUserID = managerTemp.ID;
+                        }
+                    }
+
+                    if (worksheet.Cells[row, 26].Value != null && !worksheet.Cells[row, 26].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        exploitTemp = userList.Where(u => u.Name == worksheet.Cells[row, 26].Value.ToString().Trim()).FirstOrDefault();
+                        if (exploitTemp == null)
+                        {
+                            //result.Message = "第" + row + "行归属现场不存在！";
+                            //return result;
+                        }
+                        else
+                        {
+                            temp.ExploitUserID = exploitTemp.ID;
                         }
                     }
                     temp.DealType = DealType.Yes;
@@ -4325,16 +4421,16 @@ inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
                     }
 
                     ///导入数据库
-                    if (customerAddList.Count() > 0)
-                    {
-                        var sql = @"insert into [SmartCustomer]([ID],[Name],[Gender],[Mobile],[CreateTime],[ChannelID],[CreateUserID],[CreateUserHospitalID],[Deposit],
-                            [Coupon],[Point],[VisitTimes],[ConsultTimes],
-                            [MemberCategoryID],[CashCardTotalAmount],Source,NewReward,Remark,HospitalID) 
-                            values(@ID,@Name,@Gender,@Mobile,@CreateTime,@ChannelID,@CreateUserID,@CreateUserHospitalID,@Deposit,
-                            @Coupon,@Point,@VisitTimes,@ConsultTimes,
-                            @MemberCategoryID,@CashCardTotalAmount,@Source,@NewReward,@Remark,@HospitalID)";
-                        //_connection.Execute(sql, customerAddList, _transaction);
-                    }
+                    //if (customerAddList.Count() > 0)
+                    //{
+                    //    var sql = @"insert into [SmartCustomer]([ID],[Name],[Gender],[Mobile],[CreateTime],[ChannelID],[CreateUserID],[CreateUserHospitalID],[Deposit],
+                    //        [Coupon],[Point],[VisitTimes],[ConsultTimes],
+                    //        [MemberCategoryID],[CashCardTotalAmount],Source,NewReward,Remark,HospitalID) 
+                    //        values(@ID,@Name,@Gender,@Mobile,@CreateTime,@ChannelID,@CreateUserID,@CreateUserHospitalID,@Deposit,
+                    //        @Coupon,@Point,@VisitTimes,@ConsultTimes,
+                    //        @MemberCategoryID,@CashCardTotalAmount,@Source,@NewReward,@Remark,@HospitalID)";
+                    //    //_connection.Execute(sql, customerAddList, _transaction);
+                    //}
                     if (chargeAddList.Count() > 0)
                     {
                         _connection.Execute(@"insert into SmartCharge(ID,Name,CategoryID,PinYin,Price,Status,Remark,UnitID,Size,ProductAdd,IsEvaluate,Type)
@@ -4357,32 +4453,32 @@ from SmartCashierCharge a
 inner join SmartCustomer b on a.Custom10=b.Custom10", null, _transaction);
 
                     //1、更新首次成交时间、最后成交时间、成交次数
-                    _connection.Execute(@"update SmartCustomer set FirstDealTime=min,LastDealTime=max,DealTime=count 
-  from SmartCustomer a
-  inner join (select CustomerID,MIN(createtime) as min,MAX(CreateTime) as max,count(CustomerID) as count 
-  from SmartOrder where PaidStatus in (2,3) and DealType=1 group by CustomerID) as b on a.ID=b.CustomerID", null, _transaction);
-                    //1、更新首次消费时间、最后消费时间、消费次数
-                    _connection.Execute(@"  update SmartCustomer set FirstConsumeTime=min,LastConsumeTime=max,ConsumeTime=count 
-  from SmartCustomer a
-  inner join (select CustomerID,MIN(createtime) as min,MAX(CreateTime) as max,count(CustomerID) as count 
-  from SmartOrder where PaidStatus in (2,3) group by CustomerID) as b on a.ID=b.CustomerID", null, _transaction);
+//                    _connection.Execute(@"update SmartCustomer set FirstDealTime=min,LastDealTime=max,DealTime=count 
+//  from SmartCustomer a
+//  inner join (select CustomerID,MIN(createtime) as min,MAX(CreateTime) as max,count(CustomerID) as count 
+//  from SmartOrder where PaidStatus in (2,3) and DealType=1 group by CustomerID) as b on a.ID=b.CustomerID", null, _transaction);
+//                    //1、更新首次消费时间、最后消费时间、消费次数
+//                    _connection.Execute(@"  update SmartCustomer set FirstConsumeTime=min,LastConsumeTime=max,ConsumeTime=count 
+//  from SmartCustomer a
+//  inner join (select CustomerID,MIN(createtime) as min,MAX(CreateTime) as max,count(CustomerID) as count 
+//  from SmartOrder where PaidStatus in (2,3) group by CustomerID) as b on a.ID=b.CustomerID", null, _transaction);
 
-                    //1、更新累计消费金额
-                    _connection.Execute(@"update SmartCustomer set CashCardTotalAmount=b.Amount 
-  from SmartCustomer a
-  inner join (
-  select a.CustomerID,sum(case when a.OrderType in (1,2) then a.CashCardAmount+a.DepositAmount+a.DebtAmount+a.CommissionAmount 
-  else (a.CashCardAmount+a.DepositAmount+a.DebtAmount+a.CommissionAmount)*-1 end) as Amount
-  from SmartCashierCharge a
-  where a.OrderType in (1,2,4,8) group by a.CustomerID) as b on a.ID=b.CustomerID", null, _transaction);
-                    //2、更新会员等级
-                    _connection.Execute(@"update SmartCustomer set MemberCategoryID=c.ID 
-from SmartCustomer a
-inner join (
-select a.ID,max(b.Level) as Level
-from SmartCustomer a
-inner join SmartMemberCategory as b on a.CashCardTotalAmount>b.Amount group by a.ID) as b on a.ID=b.ID
-inner join SmartMemberCategory as c on b.Level=c.Level", null, _transaction);
+//                    //1、更新累计消费金额
+//                    _connection.Execute(@"update SmartCustomer set CashCardTotalAmount=b.Amount 
+//  from SmartCustomer a
+//  inner join (
+//  select a.CustomerID,sum(case when a.OrderType in (1,2) then a.CashCardAmount+a.DepositAmount+a.DebtAmount+a.CommissionAmount 
+//  else (a.CashCardAmount+a.DepositAmount+a.DebtAmount+a.CommissionAmount)*-1 end) as Amount
+//  from SmartCashierCharge a
+//  where a.OrderType in (1,2,4,8) group by a.CustomerID) as b on a.ID=b.CustomerID", null, _transaction);
+//                    //2、更新会员等级
+//                    _connection.Execute(@"update SmartCustomer set MemberCategoryID=c.ID 
+//from SmartCustomer a
+//inner join (
+//select a.ID,max(b.Level) as Level
+//from SmartCustomer a
+//inner join SmartMemberCategory as b on a.CashCardTotalAmount>b.Amount group by a.ID) as b on a.ID=b.ID
+//inner join SmartMemberCategory as c on b.Level=c.Level", null, _transaction);
 
                     _connection.Execute(@"delete from SmartOrder where CustomerID=0", null, _transaction);
                     _connection.Execute(@"ALTER TABLE [SmartOrder] DROP COLUMN [Custom10]", null, _transaction);
@@ -4418,7 +4514,7 @@ inner join SmartCustomer b on a.CustomerID=b.ID", null, _transaction);
 
                     _connection.Execute(@"delete from SmartCashier", null, _transaction);
                     _connection.Execute(@"insert into SmartCashier
-select a.OrderID,a.HospitalID,a.CustomerID,a.OrderType,a.OrderID,1,a.CreateTime,a.Amount,a.CashCardAmount,0,0,a.CouponAmount,
+select a.OrderID,a.HospitalID,a.CustomerID,a.OrderType,a.OrderID,1,a.CreateTime,a.Amount,a.CashCardAmount,0,a.DepositAmount,a.CouponAmount,
 a.DebtAmount,1,'数据迁移补录',a.CommissionAmount,a.RainFlyType,1
 from SmartCashierCharge a", null, _transaction);
 
@@ -4430,6 +4526,867 @@ from SmartCashierCharge a", null, _transaction);
         }
 
 
+        public static void OrderProduct()
+        {
+            Console.WriteLine("订单记录开始迁移");
+
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\爱美丽\\Product\\客户消费明细表.xlsx")))
+            {
+                ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
+
+                List<DataTransferCommon> chargeList = new List<DataTransferCommon>();
+                IEnumerable<DataTransferCommon> userList = new List<DataTransferCommon>();
+                IEnumerable<DataTransferCommon> chargeSetList = new List<DataTransferCommon>();
+                //customerList = _connection.Query<DataTransferCommon>(@"select Custom10 as Name,ID from [SmartCustomer]");
+                chargeList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartCharge] order by status desc", null, _transaction).ToList();
+                chargeSetList = _connection.Query<DataTransferCommon>(@"select ID,[Name],Price from [SmartChargeSet] order by status desc", new { HospitalID = 1 }, _transaction);
+                userList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartUser] where HospitalID=@HospitalID order by status desc", new { HospitalID = 1 }, _transaction);
+
+                int rowCount = worksheet.Dimension.Rows;
+                int ColCount = worksheet.Dimension.Columns;
+
+
+
+                DataTransferCommon chargeTemp = null;
+                DataTransferCommon chargeSetTemp = null;
+                //DataTransferCommon customerTemp = null;
+                VisitType? visitType;
+                DataTransferCommon createUserTemp = null;
+                DataTransferCommon exploitTemp = null;
+                DataTransferCommon managerTemp = null;
+                string remark = "";
+                DateTime createTime;
+                DateTime expirationDate;
+                Dictionary<int, List<DataTransferOrder>> list = new Dictionary<int, List<DataTransferOrder>>();
+                int chargeSetNum = 0;
+                int num = 1;
+                int restNum = 0;
+                decimal originAmount;
+                decimal amount;
+                decimal cashAmount;
+                decimal debtAmount;
+                int orderID = 10000;
+
+                List<object> chargeAddList = new List<object>();
+                List<object> customerAddList = new List<object>();
+                for (int row = 2; row <= rowCount; row++)
+                {
+                    exploitTemp = null;
+                    managerTemp = null;
+                    //expirationDate = null;
+                    if (worksheet.Cells[row, 1].Value == null && worksheet.Cells[row, 2].Value == null && worksheet.Cells[row, 3].Value == null)
+                    {
+                        break;
+                    }
+
+                    if (worksheet.Cells[row, 1].Value.ToString().Trim() == "小计" || worksheet.Cells[row, 1].Value.ToString().Trim() == "客户管理")
+                    {
+                        continue;
+                    }
+
+                    #region
+                    //if (worksheet.Cells[row, 1].Value == null || worksheet.Cells[row, 1].Value.ToString().Trim().IsNullOrEmpty())
+                    //{
+                    //    result.Message = "第" + row + "行订单编号不能为空！";
+                    //    return result;
+                    //}
+                    if (worksheet.Cells[row, 6].Value == null || worksheet.Cells[row, 6].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        throw new Exception("第" + row + "行下单时间不能为空！");
+                    }
+                    if (worksheet.Cells[row, 21].Value == null || worksheet.Cells[row, 21].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        //worksheet.Cells[row, 21].Value = "超级管理员";
+                        //result.Message = "第" + row + "行下单人不能为空！";
+                        //return result;
+                    }
+                    if (worksheet.Cells[row, 1].Value == null || worksheet.Cells[row, 1].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        throw new Exception("第" + row + "行顾客手机号不能为空！");
+                    }
+                    if (worksheet.Cells[row, 7].Value == null || worksheet.Cells[row, 7].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        throw new Exception("第" + row + "行项目名称不能为空！");
+                    }
+                    if (worksheet.Cells[row, 8].Value == null || worksheet.Cells[row, 8].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        throw new Exception("第" + row + "行项目数量不能为空！");
+                    }
+                    if (worksheet.Cells[row, 14].Value == null || worksheet.Cells[row, 14].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        throw new Exception("第" + row + "行剩余数量不能为空！");
+                    }
+                    if (worksheet.Cells[row, 9].Value == null || worksheet.Cells[row, 9].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        throw new Exception("第" + row + "行原始金额不能为空！");
+                    }
+                    if (worksheet.Cells[row, 11].Value == null || worksheet.Cells[row, 11].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        throw new Exception("第" + row + "行成交金额不能为空！");
+                    }
+                    if (worksheet.Cells[row, 13].Value == null || worksheet.Cells[row, 13].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        throw new Exception("第" + row + "行现金支付不能为空！");
+                    }
+
+                    #endregion
+
+                    DataTransferOrder temp = new DataTransferOrder();
+                    #region
+                    if (!DateTime.TryParse(worksheet.Cells[row, 6].Value.ToString().Trim(), out createTime))
+                    {
+                        throw new Exception("第" + row + "行下单时间异常！");
+                    }
+                    temp.CreateTime = createTime.AddSeconds(1);
+
+
+                    if (worksheet.Cells[row, 21].Value == null || worksheet.Cells[row, 21].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        createUserTemp = new DataTransferCommon()
+                        {
+                            ID = 1
+                        };
+                    }
+                    else
+                    {
+                        createUserTemp = userList.Where(u => u.Name == worksheet.Cells[row, 21].Value.ToString().Trim()).FirstOrDefault();
+                        if (createUserTemp == null)
+                        {
+                            createUserTemp = new DataTransferCommon()
+                            {
+                                ID = 1
+                            };
+                            //result.Message = "第" + row + "行下单人不存在！";
+                            //return result;
+                        }
+                    }
+
+                    temp.CreateUserID = createUserTemp.ID;
+                    temp.CustomerID = 0;
+                    //customerTemp = customerList.AsParallel().Where(u => u.Name == worksheet.Cells[row, 4].Value.ToString().Trim()).FirstOrDefault();
+                    //if (customerTemp == null)
+                    //{
+                    //    customerTemp = new DataTransferCommon()
+                    //    {
+                    //        ID = OrderAutoNumber.Instance().Number(OrderAutoNumber.customerStr),
+                    //    };
+                    //    customerAddList.Add(new
+                    //    {
+                    //        ID = customerTemp.ID,
+                    //        Name = worksheet.Cells[row, 4].Value.ToString().Trim(),
+                    //        Gender = 2,
+                    //        Mobile = worksheet.Cells[row, 4].Value.ToString().Trim(),
+                    //        CreateTime = createTime,
+                    //        ChannelID = 14603201187021884,
+                    //        CreateUserID = hospitalID,
+                    //        CreateUserHospitalID = hospitalID,
+                    //        Deposit = 0,
+                    //        Coupon = 0,
+                    //        Point = 0,
+                    //        VisitTimes = 0,
+                    //        ConsultTimes = 0,
+                    //        MemberCategoryID = 0,
+                    //        CashCardTotalAmount = 0,
+                    //        Source = CustomerRegisterType.DataTransfer,
+                    //        NewReward = CustomerNewRewardType.NotPaid,
+                    //        Remark = "数据迁移",
+                    //        HospitalID = hospitalID
+                    //    });
+                    //    //result.Message = "第" + row + "行该顾客手机号不存在！";
+                    //    //return result;
+                    //}
+                    //temp.CustomerID = customerTemp.ID;
+
+                    //if (worksheet.Cells[row, 5].Value != null && worksheet.Cells[row, 5].Value.ToString().Trim() != "")
+                    //{
+                    //    chargeSetTemp = chargeSetList.AsParallel().Where(u => u.Name == worksheet.Cells[row, 5].Value.ToString().Trim()).FirstOrDefault();
+                    //    if (chargeSetTemp == null)
+                    //    {
+                    //        result.Message = "第" + row + "行套餐不存在！";
+                    //        return result;
+                    //    }
+                    //    temp.SetID = chargeSetTemp.ID;
+                    //    temp.SetPrice = chargeSetTemp.Price;
+                    //    if (worksheet.Cells[row, 6].Value == null || worksheet.Cells[row, 6].Value.ToString().Trim().IsNullOrEmpty())
+                    //    {
+                    //        result.Message = "第" + row + "行套餐数量异常！";
+                    //        return result;
+                    //    }
+                    //    if (!int.TryParse(worksheet.Cells[row, 6].Value.ToString().Trim(), out chargeSetNum))
+                    //    {
+                    //        result.Message = "第" + row + "行套餐数量异常！";
+                    //        return result;
+                    //    }
+                    //    temp.SetNum = chargeSetNum;
+                    //    temp.SetFinalPrice = temp.SetNum * temp.SetPrice;
+                    //}
+
+                    chargeTemp = chargeList.Where(u => u.Name.Trim() == worksheet.Cells[row, 7].Value.ToString().Trim().Trim()).FirstOrDefault();
+                    if (chargeTemp == null)
+                    {
+                        //continue;
+                        throw new Exception("第" + row + "行项目不存在！");
+                        //********************************************************************************************************************************************************************************************
+                        //chargeTemp = new DataTransferCommon()
+                        //{
+                        //    ID = 15914070475867136
+                        //};
+                        //chargeTemp = new DataTransferCommon()
+                        //{
+                        //    ID = SingleIdWork.Instance(1).nextId()
+                        //};
+
+                        //chargeAddList.Add(new
+                        //{
+                        //    ID = chargeTemp.ID,
+                        //    Name = worksheet.Cells[row, 7].Value.ToString().Trim(),
+                        //    CategoryID = 10061,
+                        //    PinYin = worksheet.Cells[row, 7].Value.ToString().Trim(),
+                        //    Price = 0,
+                        //    Status = 1,
+                        //    Remark = "数据迁移自动创建",
+                        //    UnitID = 10021,
+                        //    Size = "",
+                        //    ProductAdd = 1,
+                        //    IsEvaluate = 1,
+                        //    Type = 1
+                        //});
+                        //chargeList.Add(new DataTransferCommon()
+                        //{
+                        //    ID = chargeTemp.ID,
+                        //    Name = worksheet.Cells[row, 7].Value.ToString().Trim()
+                        //});
+                        //result.Message = "第" + row + "行项目不存在！";
+                        //return result;
+                    }
+                    temp.ChargeID = chargeTemp.ID;
+                    if (!int.TryParse(worksheet.Cells[row, 8].Value.ToString().Trim(), out num))
+                    {
+                        throw new Exception("第" + row + "行项目购买数量异常！");
+                    }
+                    temp.Num = num;
+                    if (!int.TryParse(worksheet.Cells[row, 14].Value.ToString().Trim(), out restNum))
+                    {
+                        throw new Exception("第" + row + "行项目剩余数量异常！");
+                    }
+                    temp.RestNum = restNum;
+                    //if (worksheet.Cells[row, 10].Value != null && !worksheet.Cells[row, 10].Value.ToString().Trim().IsNullOrEmpty())
+                    //{
+                    //    if (!DateTime.TryParse(worksheet.Cells[row, 10].Value.ToString().Trim(), out expirationDate))
+                    //    {
+                    //        result.Message = "第" + row + "行过期时间异常！";
+                    //        return result;
+                    //    }
+                    //    temp.ExpirationDate = expirationDate.Date;
+                    //}
+
+                    if (worksheet.Cells[row, 25].Value != null && !worksheet.Cells[row, 25].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        if (!DateTime.TryParse(worksheet.Cells[row, 25].Value.ToString().Trim(), out expirationDate))
+                        {
+                            throw new Exception("第" + row + "行过期时间异常！");
+                        }
+                        temp.ExpirationDate = expirationDate;
+                    }
+
+                    //if (worksheet.Cells[row, 20].Value.ToString().Trim() == "过期")
+                    //{
+                    //    if (worksheet.Cells[row, 7].Value.ToString().Trim().Contains("年卡"))
+                    //    {
+                    //        temp.ExpirationDate = temp.CreateTime.AddYears(1);
+                    //    }
+                    //    else if (worksheet.Cells[row, 7].Value.ToString().Trim().Contains("季卡"))
+                    //    {
+                    //        temp.ExpirationDate = temp.CreateTime.AddMonths(3);
+                    //    }
+                    //    else
+                    //    {
+                    //        temp.ExpirationDate = DateTime.Parse("2022-01-01");
+                    //    }
+
+                    //}
+                    //else if (worksheet.Cells[row, 20].Value.ToString().Trim() == "退费")
+                    //{
+                    //    temp.RestNum = 0;
+                    //}
+
+                    if (!decimal.TryParse(worksheet.Cells[row, 9].Value.ToString().Trim(), out originAmount))
+                    {
+                        throw new Exception("第" + row + "行原始金额异常！");
+                    }
+                    temp.Price = originAmount;
+                    if (!decimal.TryParse(worksheet.Cells[row, 11].Value.ToString().Trim(), out amount))
+                    {
+                        throw new Exception("第" + row + "行成交金额异常！");
+                    }
+                    temp.FinalPrice = amount;
+                    if (!decimal.TryParse(worksheet.Cells[row, 17].Value.ToString().Trim(), out cashAmount))
+                    {
+                        throw new Exception("第" + row + "行现金支付异常！");
+                    }
+                    temp.CashAmount = cashAmount;
+                    //if (!decimal.TryParse(worksheet.Cells[row, 14].Value.ToString().Trim(), out depositAmount))
+                    //{
+                    //    result.Message = "第" + row + "行预售款支付异常！";
+                    //    return result;
+                    //}
+                    //temp.DepositAmount = 0;
+                    //if (!decimal.TryParse(worksheet.Cells[row, 15].Value.ToString().Trim(), out couponAmount))
+                    //{
+                    //    throw new Exception("第" + row + "行代金券支付异常！");
+                    //}
+                    temp.CouponAmount = decimal.Parse(worksheet.Cells[row, 18].Value.ToString().Trim()) + decimal.Parse(worksheet.Cells[row, 19].Value.ToString().Trim());
+                    //if (!decimal.TryParse(worksheet.Cells[row, 16].Value.ToString().Trim(), out commissionAmount))
+                    //{
+                    //    result.Message = "第" + row + "行佣金支付异常！";
+                    //    return result;
+                    //}
+                    temp.CommissionAmount = 0;
+                    if (!decimal.TryParse(worksheet.Cells[row, 13].Value.ToString().Trim(), out debtAmount))
+                    {
+                        throw new Exception("第" + row + "行剩余欠款异常！");
+                    }
+                    temp.DebtAmount = decimal.Parse(worksheet.Cells[row, 13].Value.ToString().Trim()) +
+                        decimal.Parse(worksheet.Cells[row, 24].Value.ToString().Trim());
+                    //temp.FinalPrice += debtAmount;
+                    temp.DepositAmount = temp.FinalPrice - (temp.CouponAmount + temp.CommissionAmount + temp.DebtAmount);
+                    //if (temp.FinalPrice != temp.CashAmount + temp.DepositAmount + temp.CouponAmount + temp.CommissionAmount + temp.DebtAmount)
+                    //{
+                    //    temp.CashAmount = temp.FinalPrice - (temp.DepositAmount + temp.CouponAmount + temp.CommissionAmount + temp.DebtAmount);
+                    //    //result.Message = "第" + row + "行成交金额不等于现金+预收款+券+佣金+欠款！";
+                    //    //return result;
+                    //}
+                    visitType = TransferVisitType("再消费");
+                    if (visitType == null)
+                    {
+                        throw new Exception("第" + row + "行到诊状态异常！");
+                    }
+                    temp.VisitType = visitType.Value;
+
+                    //if (worksheet.Cells[row, 19].Value != null && !worksheet.Cells[row, 19].Value.ToString().Trim().IsNullOrEmpty())
+                    //{
+                    //    exploitTemp = userList.Where(u => u.Name == worksheet.Cells[row, 19].Value.ToString().Trim()).FirstOrDefault();
+                    //    if (exploitTemp == null)
+                    //    {
+                    //        result.Message = "第" + row + "行归属网电不存在！";
+                    //        return result;
+                    //    }
+                    //    temp.ExploitUserID = exploitTemp.ID;
+                    //}
+                    if (worksheet.Cells[row, 21].Value != null && !worksheet.Cells[row, 21].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        managerTemp = userList.Where(u => u.Name == worksheet.Cells[row, 21].Value.ToString().Trim()).FirstOrDefault();
+                        if (managerTemp == null)
+                        {
+                            //result.Message = "第" + row + "行归属现场不存在！";
+                            //return result;
+                        }
+                        else
+                        {
+                            temp.ManagerUserID = managerTemp.ID;
+                        }
+                    }
+
+                    if (worksheet.Cells[row, 26].Value != null && !worksheet.Cells[row, 26].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        exploitTemp = userList.Where(u => u.Name == worksheet.Cells[row, 26].Value.ToString().Trim()).FirstOrDefault();
+                        if (exploitTemp == null)
+                        {
+                            //result.Message = "第" + row + "行归属现场不存在！";
+                            //return result;
+                        }
+                        else
+                        {
+                            temp.ExploitUserID = exploitTemp.ID;
+                        }
+                    }
+                    temp.DealType = DealType.Yes;
+                    remark = "";
+                    if (worksheet.Cells[row, 23].Value != null)
+                    {
+                        remark = worksheet.Cells[row, 23].Value.ToString().Trim();
+                    }
+
+                    remark = "药物品补录";
+                    temp.Remark = remark;
+                    temp.Custom10 = worksheet.Cells[row, 1].Value.ToString().Trim();
+                    #endregion
+
+                    orderID = 10000 + row;
+                    if (list.ContainsKey(orderID))
+                    {
+                        list[orderID].Add(temp);
+                    }
+                    else
+                    {
+                        list.Add(orderID, new List<DataTransferOrder>() { temp });
+                    }
+                }
+
+                if (list.Values.Count() > 0)
+                {
+                    #region datetable
+                    DataTable orderList = new DataTable("SmartOrder");
+                    orderList.Columns.Add("ID", typeof(long));
+                    orderList.Columns.Add("CustomerID", typeof(long));
+                    orderList.Columns.Add("CreateUserID", typeof(long));
+                    orderList.Columns.Add("CreateTime", typeof(DateTime));
+                    orderList.Columns.Add("TotalPrice", typeof(decimal));
+                    orderList.Columns.Add("FinalPrice", typeof(decimal));
+                    orderList.Columns.Add("PaidStatus", typeof(int));
+                    orderList.Columns.Add("Remark", typeof(string));
+                    orderList.Columns.Add("AuditStatus", typeof(int));
+                    orderList.Columns.Add("PaidTime", typeof(DateTime));
+                    orderList.Columns.Add("DebtAmount", typeof(decimal));
+                    orderList.Columns.Add("VisitType", typeof(int));
+                    orderList.Columns.Add("SourceType", typeof(int));
+                    orderList.Columns.Add("RainFlyType", typeof(int));
+                    orderList.Columns.Add("ExploitUserID", typeof(long));
+                    orderList.Columns.Add("ManagerUserID", typeof(long));
+                    orderList.Columns.Add("DealType", typeof(int));
+                    orderList.Columns.Add("HospitalID", typeof(long));
+                    orderList.Columns.Add("Custom10", typeof(string));
+
+                    decimal debtAmountTemp = 0;
+
+
+                    DataTable detailList = new DataTable("SmartOrderDetail");
+                    detailList.Columns.Add("ID", typeof(long));
+                    detailList.Columns.Add("OrderID", typeof(long));
+                    detailList.Columns.Add("ChargeID", typeof(long));
+                    detailList.Columns.Add("Price", typeof(decimal));
+                    detailList.Columns.Add("Num", typeof(int));
+                    detailList.Columns.Add("FinalPrice", typeof(decimal));
+                    detailList.Columns.Add("RestNum", typeof(int));
+                    detailList.Columns.Add("SetID", typeof(long));
+                    detailList.Columns.Add("SetNum", typeof(int));
+                    detailList.Columns.Add("SetPrice", typeof(decimal));
+                    detailList.Columns.Add("SetFinalPrice", typeof(decimal));
+                    detailList.Columns.Add("ExpirationDate", typeof(DateTime));
+
+                    DataTable cashierList = new DataTable("SmartCashierCharge");
+                    cashierList.Columns.Add("CashierID", typeof(long));
+                    cashierList.Columns.Add("ReferID", typeof(long));
+                    cashierList.Columns.Add("CashCardAmount", typeof(decimal));
+                    cashierList.Columns.Add("DepositAmount", typeof(decimal));
+                    cashierList.Columns.Add("CouponAmount", typeof(decimal));
+                    cashierList.Columns.Add("DebtAmount", typeof(decimal));
+                    cashierList.Columns.Add("Amount", typeof(decimal));
+                    cashierList.Columns.Add("HospitalID", typeof(long));
+                    cashierList.Columns.Add("CommissionAmount", typeof(decimal));
+                    cashierList.Columns.Add("CreateTime", typeof(DateTime));
+                    cashierList.Columns.Add("OrderType", typeof(int));
+                    cashierList.Columns.Add("CustomerID", typeof(long));
+                    cashierList.Columns.Add("ChargeID", typeof(long));
+                    cashierList.Columns.Add("SetID", typeof(long));
+                    cashierList.Columns.Add("SetNum", typeof(int));
+                    cashierList.Columns.Add("Num", typeof(int));
+                    cashierList.Columns.Add("OriginAmount", typeof(decimal));
+                    cashierList.Columns.Add("VisitType", typeof(int));
+                    cashierList.Columns.Add("ExploitUserID", typeof(long));
+                    cashierList.Columns.Add("ManagerUserID", typeof(long));
+                    cashierList.Columns.Add("OrderID", typeof(long));
+                    cashierList.Columns.Add("SourceType", typeof(int));
+                    cashierList.Columns.Add("RainFlyType", typeof(int));
+                    cashierList.Columns.Add("OrderUserID", typeof(long));
+                    cashierList.Columns.Add("BuyExploitUserID", typeof(long));
+                    cashierList.Columns.Add("BuyManagerUserID", typeof(long));
+                    cashierList.Columns.Add("BuyOrderUserID", typeof(long));
+                    cashierList.Columns.Add("BuyVisitType", typeof(int));
+                    cashierList.Columns.Add("DealType", typeof(int));
+                    cashierList.Columns.Add("Custom10", typeof(string));
+
+                    #endregion
+                    foreach (var u in list.Values.AsParallel())
+                    {
+                        #region order
+                        var id = OrderAutoNumber.Instance().Number(OrderAutoNumber.orderStr);
+                        var order = orderList.NewRow();
+                        order["ID"] = id;
+                        order["CustomerID"] = u.FirstOrDefault().CustomerID;
+                        order["CreateUserID"] = u.FirstOrDefault().CreateUserID;
+                        order["CreateTime"] = u.FirstOrDefault().CreateTime;
+                        order["TotalPrice"] = u.Sum(x => x.Price);
+                        order["FinalPrice"] = u.Sum(x => x.FinalPrice);
+                        debtAmountTemp = u.Sum(x => x.DebtAmount);
+                        order["DebtAmount"] = debtAmountTemp;
+                        order["PaidTime"] = u.FirstOrDefault().CreateTime;
+                        order["VisitType"] = u.FirstOrDefault().VisitType.CastTo<int>();
+                        order["SourceType"] = 7;
+                        order["RainFlyType"] = 0;
+                        if (u.FirstOrDefault().ExploitUserID != null)
+                        {
+                            order["ExploitUserID"] = u.FirstOrDefault().ExploitUserID;
+                        }
+                        if (u.FirstOrDefault().ManagerUserID != null)
+                        {
+                            order["ManagerUserID"] = u.FirstOrDefault().ManagerUserID;
+                        }
+                        order["DealType"] = u.FirstOrDefault().DealType.CastTo<int>();
+                        order["HospitalID"] = 1;
+                        if (debtAmountTemp > 0)
+                        {
+                            order["PaidStatus"] = 3;
+                        }
+                        else
+                        {
+                            order["PaidStatus"] = 2;
+                        }
+                        order["Remark"] = u.FirstOrDefault().Remark;
+                        order["AuditStatus"] = 4;
+
+                        order["Custom10"] = u.FirstOrDefault().Custom10;
+                        orderList.Rows.Add(order);
+                        #endregion
+
+                        foreach (var x in u)
+                        {
+                            #region detail
+                            var detail = detailList.NewRow();
+                            var detailID = SingleIdWork.Instance(1).nextId();
+                            detail["ID"] = detailID;
+                            detail["OrderID"] = id;
+                            detail["ChargeID"] = x.ChargeID;
+                            detail["Price"] = x.Price;
+                            detail["Num"] = x.Num;
+                            detail["FinalPrice"] = x.FinalPrice;
+                            detail["RestNum"] = x.RestNum;
+                            if (x.SetID != null)
+                            {
+                                detail["SetID"] = x.SetID;
+                                detail["SetNum"] = x.SetNum;
+                                detail["SetPrice"] = x.SetPrice;
+                                detail["SetFinalPrice"] = x.SetFinalPrice;
+                            }
+                            if (x.ExpirationDate != null)
+                            {
+                                detail["ExpirationDate"] = x.ExpirationDate;
+                            }
+                            detailList.Rows.Add(detail);
+                            #endregion
+
+                            #region cashier
+                            var cashier = cashierList.NewRow();
+                            cashier["CashierID"] = 0;
+                            cashier["ReferID"] = detailID;
+                            cashier["CashCardAmount"] = x.CashAmount;
+                            cashier["DepositAmount"] = x.DepositAmount;
+                            cashier["CouponAmount"] = x.CouponAmount;
+                            cashier["DebtAmount"] = x.DebtAmount;
+                            cashier["Amount"] = x.FinalPrice;
+                            cashier["HospitalID"] = 1;
+                            cashier["CommissionAmount"] = x.CommissionAmount;
+                            cashier["CreateTime"] = x.CreateTime;
+                            cashier["OrderType"] = 1;
+                            cashier["CustomerID"] = x.CustomerID;
+                            cashier["ChargeID"] = x.ChargeID;
+                            if (x.SetID != null)
+                            {
+                                cashier["SetID"] = x.SetID;
+                                cashier["SetNum"] = x.SetNum;
+                            }
+                            cashier["Num"] = x.Num;
+                            cashier["OriginAmount"] = x.Price;
+                            cashier["VisitType"] = x.VisitType.CastTo<int>();
+                            if (x.ExploitUserID != null)
+                            {
+                                cashier["ExploitUserID"] = x.ExploitUserID;
+                                cashier["BuyExploitUserID"] = x.ExploitUserID;
+                            }
+                            if (x.ManagerUserID != null)
+                            {
+                                cashier["ManagerUserID"] = x.ManagerUserID;
+                                cashier["BuyManagerUserID"] = x.ManagerUserID;
+                            }
+                            cashier["OrderID"] = id;
+                            cashier["SourceType"] = 7;
+                            cashier["RainFlyType"] = 0;
+                            cashier["OrderUserID"] = x.CreateUserID;
+                            cashier["BuyVisitType"] = x.VisitType.CastTo<int>();
+                            cashier["BuyOrderUserID"] = x.CreateUserID;
+                            cashier["DealType"] = x.DealType.CastTo<int>();
+                            cashier["Custom10"] = x.Custom10;
+                            cashierList.Rows.Add(cashier);
+                            #endregion
+                        }
+                    }
+
+
+                    if (chargeAddList.Count() > 0)
+                    {
+                        _connection.Execute(@"insert into SmartCharge(ID,Name,CategoryID,PinYin,Price,Status,Remark,UnitID,Size,ProductAdd,IsEvaluate,Type)
+ values(@ID, @Name, @CategoryID, @PinYin, @Price, @Status, @Remark, @UnitID,@Size,@ProductAdd,@IsEvaluate,@Type)", chargeAddList, _transaction);
+                    }
+
+                    _connection.Execute(@"ALTER TABLE [SmartOrder] ADD [Custom10] nvarchar(255)", null, _transaction);
+                    _connection.Execute(@"ALTER TABLE [SmartCashierCharge] ADD [Custom10] nvarchar(255)", null, _transaction);
+
+                    SqlBulkCopyByDataTable("SmartOrder", orderList);
+                    SqlBulkCopyByDataTable("SmartOrderDetail", detailList);
+                    SqlBulkCopyByDataTable("SmartCashierCharge", cashierList);
+
+                    _connection.Execute(@"update SmartOrder set CustomerID=b.ID 
+from SmartOrder a 
+inner join SmartCustomer b on a.Custom10=b.Custom10
+where a.CustomerID=0", null, _transaction);
+
+                    _connection.Execute(@"update SmartCashierCharge set CustomerID=b.ID 
+from SmartCashierCharge a 
+inner join SmartCustomer b on a.Custom10=b.Custom10
+where a.CustomerID=0", null, _transaction);
+
+
+
+                    _connection.Execute(@"delete from SmartOrder where CustomerID=0", null, _transaction);
+                    _connection.Execute(@"ALTER TABLE [SmartOrder] DROP COLUMN [Custom10]", null, _transaction);
+
+                    _connection.Execute(@"delete from SmartCashierCharge where CustomerID=0", null, _transaction);
+                    _connection.Execute(@"ALTER TABLE [SmartCashierCharge] DROP COLUMN [Custom10]", null, _transaction);
+
+                    //                    _connection.Execute(@"update SmartCashierCharge set ExploitUserID=b.UserID,BuyExploitUserID=b.UserID
+                    //from SmartCashierCharge a
+                    //inner join SmartOwnerShip b on a.CustomerID=b.CUstomerID 
+                    //and b.EndTime>getDate() and b.Type=1
+                    //where a.ExploitUserID is null", null, _transaction);
+                    //                    _connection.Execute(@"update SmartOrder set ExploitUserID=b.UserID
+                    //from SmartOrder a
+                    //inner join SmartOwnerShip b on a.CustomerID=b.CUstomerID 
+                    //and b.EndTime>getDate() and b.Type=1
+                    //where a.ExploitUserID is null", null, _transaction);
+
+                    //                    _connection.Execute(@"update SmartOrder set VisitType =case when a.CreateTime=b.FirstDealTime and a.CreateTime=b.FirstVisitTime then 1
+                    //when a.CreateTime=b.FirstDealTime and a.CreateTime>b.FirstVisitTime then 2
+                    //else 4 end
+                    //from SmartOrder a
+                    //inner join SmartCustomer b on a.CustomerID=b.ID", null, _transaction);
+
+                    //                    _connection.Execute(@"update SmartCashierCharge set VisitType =case when a.CreateTime=b.FirstDealTime and a.CreateTime=b.FirstVisitTime then 1
+                    //when a.CreateTime=b.FirstDealTime and a.CreateTime>b.FirstVisitTime then 2
+                    //else 4 end,
+                    //BuyVisitType=case when a.CreateTime=b.FirstDealTime and a.CreateTime=b.FirstVisitTime then 1
+                    //when a.CreateTime=b.FirstDealTime and a.CreateTime>b.FirstVisitTime then 2
+                    //else 4 end
+                    //from SmartCashierCharge a
+                    //inner join SmartCustomer b on a.CustomerID=b.ID", null, _transaction);
+
+                    //_connection.Execute(@"delete from SmartCashier", null, _transaction);
+                    //                    _connection.Execute(@"insert into SmartCashier
+                    //select a.OrderID,a.HospitalID,a.CustomerID,a.OrderType,a.OrderID,1,a.CreateTime,a.Amount,a.CashCardAmount,0,0,a.CouponAmount,
+                    //a.DebtAmount,1,'药物品补录',a.CommissionAmount,a.RainFlyType,1
+                    //from SmartCashierCharge a where a.CashierID=0", null, _transaction);
+
+                    //                    _connection.Execute(@"update SmartCashierCharge set CashierID=OrderID where CashierID=0", null, _transaction);
+                }
+
+                Console.WriteLine("订单记录结束迁移");
+            }
+        }
+        /// <summary>
+        /// 订单
+        /// </summary>
+        public static void OrderT()
+        {
+            Console.WriteLine("订单记录开始迁移");
+
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\爱美丽\\新建 Microsoft Excel 工作表.xlsx")))
+            {
+                ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
+
+                List<DataTransferCommon> chargeList = new List<DataTransferCommon>();
+                IEnumerable<DataTransferCommon> userList = new List<DataTransferCommon>();
+                IEnumerable<DataTransferCommon> chargeSetList = new List<DataTransferCommon>();
+                //customerList = _connection.Query<DataTransferCommon>(@"select Custom10 as Name,ID from [SmartCustomer]");
+                chargeList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartCharge] order by status desc", null, _transaction).ToList();
+                chargeSetList = _connection.Query<DataTransferCommon>(@"select ID,[Name],Price from [SmartChargeSet] order by status desc", new { HospitalID = 1 }, _transaction);
+                userList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartUser] where HospitalID=@HospitalID order by status desc", new { HospitalID = 1 }, _transaction);
+
+                int rowCount = worksheet.Dimension.Rows;
+                int ColCount = worksheet.Dimension.Columns;
+
+
+
+                DataTransferCommon chargeTemp = null;
+                DataTransferCommon chargeSetTemp = null;
+                //DataTransferCommon customerTemp = null;
+                VisitType? visitType;
+                DataTransferCommon createUserTemp = null;
+                DataTransferCommon exploitTemp = null;
+                DataTransferCommon managerTemp = null;
+                string remark = "";
+                DateTime createTime;
+                DateTime expirationDate;
+                Dictionary<int, List<DataTransferOrder>> list = new Dictionary<int, List<DataTransferOrder>>();
+                int chargeSetNum = 0;
+                int num = 1;
+                int restNum = 0;
+                decimal originAmount;
+                decimal amount;
+                decimal cashAmount;
+                decimal debtAmount;
+                int orderID = 10000;
+
+                List<object> chargeAddList = new List<object>();
+                List<object> customerAddList = new List<object>();
+
+                DataTable orderList = new DataTable("TestT");
+                orderList.Columns.Add("FinalPrice", typeof(decimal));
+                orderList.Columns.Add("ChargeID", typeof(long));
+                orderList.Columns.Add("Num", typeof(long));
+                orderList.Columns.Add("RestNum", typeof(int));
+                orderList.Columns.Add("Custom10", typeof(string));
+                orderList.Columns.Add("CreateTime", typeof(DateTime));
+
+
+                for (int row = 2; row <= rowCount; row++)
+                {
+                    exploitTemp = null;
+                    managerTemp = null;
+                    //expirationDate = null;
+                    if (worksheet.Cells[row, 1].Value == null && worksheet.Cells[row, 2].Value == null && worksheet.Cells[row, 3].Value == null)
+                    {
+                        break;
+                    }
+
+                    if (worksheet.Cells[row, 1].Value.ToString().Trim() == "小计" || worksheet.Cells[row, 1].Value.ToString().Trim() == "客户管理")
+                    {
+                        continue;
+                    }
+
+                    #region
+                    //if (worksheet.Cells[row, 1].Value == null || worksheet.Cells[row, 1].Value.ToString().Trim().IsNullOrEmpty())
+                    //{
+                    //    result.Message = "第" + row + "行订单编号不能为空！";
+                    //    return result;
+                    //}
+                    if (worksheet.Cells[row, 6].Value == null || worksheet.Cells[row, 6].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        throw new Exception("第" + row + "行下单时间不能为空！");
+                    }
+                    if (worksheet.Cells[row, 21].Value == null || worksheet.Cells[row, 21].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        //worksheet.Cells[row, 21].Value = "超级管理员";
+                        //result.Message = "第" + row + "行下单人不能为空！";
+                        //return result;
+                    }
+                    if (worksheet.Cells[row, 1].Value == null || worksheet.Cells[row, 1].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        throw new Exception("第" + row + "行顾客手机号不能为空！");
+                    }
+                    if (worksheet.Cells[row, 7].Value == null || worksheet.Cells[row, 7].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        throw new Exception("第" + row + "行项目名称不能为空！");
+                    }
+                    if (worksheet.Cells[row, 8].Value == null || worksheet.Cells[row, 8].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        throw new Exception("第" + row + "行项目数量不能为空！");
+                    }
+                    if (worksheet.Cells[row, 14].Value == null || worksheet.Cells[row, 14].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        throw new Exception("第" + row + "行剩余数量不能为空！");
+                    }
+                    if (worksheet.Cells[row, 9].Value == null || worksheet.Cells[row, 9].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        throw new Exception("第" + row + "行原始金额不能为空！");
+                    }
+                    if (worksheet.Cells[row, 11].Value == null || worksheet.Cells[row, 11].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        throw new Exception("第" + row + "行成交金额不能为空！");
+                    }
+                    if (worksheet.Cells[row, 13].Value == null || worksheet.Cells[row, 13].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        throw new Exception("第" + row + "行现金支付不能为空！");
+                    }
+
+                    #endregion
+
+                    DataTransferOrder temp = new DataTransferOrder();
+                    #region
+                    if (!DateTime.TryParse(worksheet.Cells[row, 6].Value.ToString().Trim(), out createTime))
+                    {
+                        throw new Exception("第" + row + "行下单时间异常！");
+                    }
+                    temp.CreateTime = createTime.AddSeconds(1);
+
+
+                    if (worksheet.Cells[row, 21].Value == null || worksheet.Cells[row, 21].Value.ToString().Trim().IsNullOrEmpty())
+                    {
+                        createUserTemp = new DataTransferCommon()
+                        {
+                            ID = 1
+                        };
+                    }
+                    else
+                    {
+                        createUserTemp = userList.Where(u => u.Name == worksheet.Cells[row, 21].Value.ToString().Trim()).FirstOrDefault();
+                        if (createUserTemp == null)
+                        {
+                            createUserTemp = new DataTransferCommon()
+                            {
+                                ID = 1
+                            };
+                            //result.Message = "第" + row + "行下单人不存在！";
+                            //return result;
+                        }
+                    }
+
+                    temp.CreateUserID = createUserTemp.ID;
+                    temp.CustomerID = 0;
+
+
+                    chargeTemp = chargeList.Where(u => u.Name.Trim() == worksheet.Cells[row, 7].Value.ToString().Trim().Trim()).FirstOrDefault();
+                    if (chargeTemp == null)
+                    {
+                        //continue;
+                        throw new Exception("第" + row + "行项目不存在！");
+                    }
+                    temp.ChargeID = chargeTemp.ID;
+                    if (!int.TryParse(worksheet.Cells[row, 8].Value.ToString().Trim(), out num))
+                    {
+                        throw new Exception("第" + row + "行项目购买数量异常！");
+                    }
+                    temp.Num = num;
+                    if (!int.TryParse(worksheet.Cells[row, 14].Value.ToString().Trim(), out restNum))
+                    {
+                        throw new Exception("第" + row + "行项目剩余数量异常！");
+                    }
+                    temp.RestNum = restNum;
+
+
+                    if (!decimal.TryParse(worksheet.Cells[row, 9].Value.ToString().Trim(), out originAmount))
+                    {
+                        throw new Exception("第" + row + "行原始金额异常！");
+                    }
+                    temp.Price = originAmount;
+                    if (!decimal.TryParse(worksheet.Cells[row, 11].Value.ToString().Trim(), out amount))
+                    {
+                        throw new Exception("第" + row + "行成交金额异常！");
+                    }
+                    temp.FinalPrice = amount;
+
+                    temp.Custom10 = worksheet.Cells[row, 1].Value.ToString().Trim().Split('<')[1].Split('>')[0];
+                    #endregion
+
+                    var order = orderList.NewRow();
+                    order["ChargeID"] = temp.ChargeID;
+                    order["Num"] = temp.Num;
+                    order["RestNum"] = temp.RestNum;
+                    order["FinalPrice"] = temp.FinalPrice;
+
+
+
+                    order["Custom10"] = temp.Custom10;
+                    order["CreateTime"] = temp.CreateTime;
+
+                    orderList.Rows.Add(order);
+                }
+
+                SqlBulkCopyByDataTable("TestT", orderList);
+
+                Console.WriteLine("订单记录结束迁移");
+            }
+        }
         /// <summary>
         /// 订单
         /// </summary>
@@ -4636,15 +5593,15 @@ values(@Amount,@ChargeID,@OrderID,@BuyOrderUserID,@BuyVisitType,@CashCardAmount,
         {
             Console.WriteLine("划扣记录开始迁移");
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\水上伊人\\客户消费明细表.xlsx")))
+            using (var package = new ExcelPackage(new System.IO.FileInfo("D:\\哪吒智能\\各医院\\东方整形\\客户消费记录表02.xlsx")))
             {
                 ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
                 IEnumerable<DataTransferCommon> deptList = new List<DataTransferCommon>();
                 IEnumerable<DataTransferCommon> userList = new List<DataTransferCommon>();
                 IEnumerable<DataTransferCommon> chargeList = new List<DataTransferCommon>();
                 deptList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartDept] where HospitalID=@HospitalID", new { HospitalID = 1 }, _transaction);
-                userList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartUser] where HospitalID=@HospitalID", new { HospitalID = 1 }, _transaction);
-                chargeList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartCharge] ", null, _transaction);
+                userList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartUser] where HospitalID=@HospitalID order by status desc", new { HospitalID = 1 }, _transaction);
+                chargeList = _connection.Query<DataTransferCommon>(@"select ID,[Name] from [SmartCharge] order by status desc", null, _transaction);
 
                 int rowCount = worksheet.Dimension.Rows;
                 int ColCount = worksheet.Dimension.Columns;
@@ -4742,20 +5699,21 @@ values(@Amount,@ChargeID,@OrderID,@BuyOrderUserID,@BuyVisitType,@CashCardAmount,
                     {
                         throw new Exception("第" + row + "行划扣时间异常！");
                     }
-
+                    //*********************************************************************************************************************************
                     deptTemp = deptList.Where(u => u.Name.Trim() == worksheet.Cells[row, 5].Value.ToString().Trim()).FirstOrDefault();
                     if (deptTemp == null)
                     {
                         deptTemp = new DataTransferCommon()
                         {
-                            ID = 10023
+                            ID = 10000
                         };
                         //throw new Exception("第" + row + "行科室不存在！");
                     }
 
-                    chargeTemp = chargeList.Where(u => u.Name == worksheet.Cells[row, 8].Value.ToString().Trim()).FirstOrDefault();
+                    chargeTemp = chargeList.Where(u => u.Name.Trim() == worksheet.Cells[row, 8].Value.ToString().Trim()).FirstOrDefault();
                     if (chargeTemp == null)
                     {
+                        //throw new Exception("第" + row + "行划扣项目不存在！");
                         continue;
                         //result.Message = "第" + row + "行划扣项目不存在！";
                         //return result;
@@ -4772,7 +5730,7 @@ values(@Amount,@ChargeID,@OrderID,@BuyOrderUserID,@BuyVisitType,@CashCardAmount,
                     {
                         doctorTemp = new DataTransferCommon()
                         {
-                            ID = 1001
+                            ID = 16569461103821824
                         };
                     }
                     else
@@ -4782,7 +5740,7 @@ values(@Amount,@ChargeID,@OrderID,@BuyOrderUserID,@BuyVisitType,@CashCardAmount,
                         {
                             doctorTemp = new DataTransferCommon()
                             {
-                                ID = 1001
+                                ID = 16569461103821824
                             };
 
                         }
@@ -4841,7 +5799,7 @@ values(@Amount,@ChargeID,@OrderID,@BuyOrderUserID,@BuyVisitType,@CashCardAmount,
 
                     visitList.Rows.Add(dr);
 
-                    //*********************************************************************************************************************************************************************************************************************  麻醉师
+                    //麻醉师*********************************************************************************************************************************************************************************************************************  麻醉师
                     if (worksheet.Cells[row, 17].Value != null && !worksheet.Cells[row, 17].Value.ToString().Trim().IsNullOrEmpty())
                     {
                         var temp = userList.Where(u => u.Name.Trim() == worksheet.Cells[row, 17].Value.ToString().Trim()).FirstOrDefault();
@@ -4851,11 +5809,11 @@ values(@Amount,@ChargeID,@OrderID,@BuyOrderUserID,@BuyVisitType,@CashCardAmount,
                             dr2["ID"] = SingleIdWork.Instance(1).nextId();
                             dr2["OperationID"] = operationID;
                             dr2["UserID"] = temp.ID;
-                            dr2["PositionID"] = 15920567369925632;
+                            dr2["PositionID"] = 16569458050466816;
                             operatorList.Rows.Add(dr2);
                         }
                     }
-                    //*********************************************************************************************************************************************************************************************************************  外科医助
+                    //医助*********************************************************************************************************************************************************************************************************************  外科医助
                     if (worksheet.Cells[row, 18].Value != null && !worksheet.Cells[row, 18].Value.ToString().Trim().IsNullOrEmpty())
                     {
                         var temp = userList.Where(u => u.Name.Trim() == worksheet.Cells[row, 18].Value.ToString().Trim()).FirstOrDefault();
@@ -4865,11 +5823,11 @@ values(@Amount,@ChargeID,@OrderID,@BuyOrderUserID,@BuyVisitType,@CashCardAmount,
                             dr3["ID"] = SingleIdWork.Instance(1).nextId();
                             dr3["OperationID"] = operationID;
                             dr3["UserID"] = temp.ID;
-                            dr3["PositionID"] = 15920567611016192;
+                            dr3["PositionID"] = 16569458217518080;
                             operatorList.Rows.Add(dr3);
                         }
                     }
-                    //*********************************************************************************************************************************************************************************************************************  美容师
+                    //美疗师*********************************************************************************************************************************************************************************************************************  美容师
                     if (worksheet.Cells[row, 20].Value != null && !worksheet.Cells[row, 20].Value.ToString().Trim().IsNullOrEmpty())
                     {
                         var temp = userList.Where(u => u.Name.Trim() == worksheet.Cells[row, 20].Value.ToString().Trim()).FirstOrDefault();
@@ -4879,11 +5837,11 @@ values(@Amount,@ChargeID,@OrderID,@BuyOrderUserID,@BuyVisitType,@CashCardAmount,
                             dr4["ID"] = SingleIdWork.Instance(1).nextId();
                             dr4["OperationID"] = operationID;
                             dr4["UserID"] = temp.ID;
-                            dr4["PositionID"] = 15921187805807616;
+                            dr4["PositionID"] = 16569458426020864;
                             operatorList.Rows.Add(dr4);
                         }
                     }
-                    //*********************************************************************************************************************************************************************************************************************  外科护士
+                    //护士*********************************************************************************************************************************************************************************************************************  外科护士
                     if (worksheet.Cells[row, 21].Value != null && !worksheet.Cells[row, 21].Value.ToString().Trim().IsNullOrEmpty())
                     {
                         var temp = userList.Where(u => u.Name.Trim() == worksheet.Cells[row, 21].Value.ToString().Trim()).FirstOrDefault();
@@ -4893,7 +5851,7 @@ values(@Amount,@ChargeID,@OrderID,@BuyOrderUserID,@BuyVisitType,@CashCardAmount,
                             dr5["ID"] = SingleIdWork.Instance(1).nextId();
                             dr5["OperationID"] = operationID;
                             dr5["UserID"] = temp.ID;
-                            dr5["PositionID"] = 15921187973448704;
+                            dr5["PositionID"] = 16569458597200896;
                             operatorList.Rows.Add(dr5);
                         }
                     }
